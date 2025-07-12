@@ -1,0 +1,514 @@
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, query, writeBatch, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+// --- LANGKAH PENTING: KONFIGURASI FIREBASE ---
+// Ganti objek kosong di bawah ini dengan konfigurasi dari proyek Firebase Anda.
+// Anda bisa mendapatkannya dari Project settings > General > Your apps > Web app.
+const firebaseConfig = {
+  // apiKey: "AIzaSy...",
+  // authDomain: "proyek-anda.firebaseapp.com",
+  // projectId: "proyek-anda",
+  // storageBucket: "proyek-anda.appspot.com",
+  // messagingSenderId: "...",
+  // appId: "..."
+};
+// ----------------------------------------------
+
+const appId = firebaseConfig.projectId || 'default-imajinasi-lokal';
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db = getFirestore(app);
+
+let userId = null;
+let unsubscribePrompts = null;
+let unsubscribeHistory = null;
+let unsubscribeVariations = null;
+let allPrompts = [];
+let importHistory = [];
+let currentPromptId = null;
+let currentCategory = null;
+
+// --- Selektor DOM (Mengambil elemen HTML) ---
+const pages = document.querySelectorAll('.page');
+const categoryGrid = document.getElementById('category-grid');
+const promptList = document.getElementById('prompt-list');
+const historyList = document.getElementById('history-list');
+const promptListTitle = document.getElementById('prompt-list-title');
+const emptyStateCategories = document.getElementById('empty-state-categories');
+const backToCategoriesBtn = document.getElementById('backToCategoriesBtn');
+const backToPromptsBtn = document.getElementById('backToPromptsBtn');
+const backToCategoriesBtnFromHistory = document.getElementById('backToCategoriesBtnFromHistory');
+const historyBtn = document.getElementById('historyBtn');
+const promptDetailContent = document.getElementById('prompt-detail-content');
+const variationHistoryList = document.getElementById('variation-history-list');
+const globalSearchInput = document.getElementById('globalSearchInput');
+const settingsBtn = document.getElementById('settingsBtn');
+
+const addPromptBtn = document.getElementById('addPromptBtn');
+const importCsvBtn = document.getElementById('importCsvBtn');
+const exportBtn = document.getElementById('exportBtn');
+const csvFileInput = document.getElementById('csvFileInput');
+const modal = document.getElementById('promptModal');
+const closeModalBtn = document.getElementById('closeModalBtn');
+const cancelBtn = document.getElementById('cancelBtn');
+const promptForm = document.getElementById('promptForm');
+const modalTitle = document.getElementById('modalTitle');
+const userInfo = document.getElementById('userInfo');
+const alertModal = document.getElementById('alertModal');
+const alertMessage = document.getElementById('alertMessage');
+const alertConfirmBtn = document.getElementById('alertConfirmBtn');
+const alertCancelBtn = document.getElementById('alertCancelBtn');
+
+// Selektor DOM untuk Modal Variasi
+const variationModal = document.getElementById('variationModal');
+const closeVariationModalBtn = document.getElementById('closeVariationModalBtn');
+const closeVariationModalBtnFooter = document.getElementById('closeVariationModalBtnFooter');
+const originalPromptText = document.getElementById('originalPromptText');
+const poseVariationSelect = document.getElementById('pose-variation');
+const clothingVariationSelect = document.getElementById('clothing-variation');
+const manualVariationInput = document.getElementById('manual-variation');
+const generateVariationBtn = document.getElementById('generate-variation-btn');
+const variationSpinner = document.getElementById('variation-spinner');
+const variationResultsContainer = document.getElementById('variation-results-container');
+const suggestMetadataBtn = document.getElementById('suggestMetadataBtn');
+const metadataSpinner = document.getElementById('metadata-spinner');
+
+// Selektor DOM untuk Modal Pengaturan
+const settingsModal = document.getElementById('settingsModal');
+const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
+const apiKeyInput = document.getElementById('apiKeyInput');
+const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+
+
+// --- Fungsi Panggilan API Gemini ---
+async function callGemini(prompt, schema) {
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert("Kunci API Gemini belum diatur. Silakan masukkan di menu Pengaturan.");
+        return null;
+    }
+    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+    const payload = { 
+        contents: [{ role: "user", parts: [{ text: prompt }] }], 
+        generationConfig: { responseMimeType: "application/json", responseSchema: schema } 
+    };
+    try {
+        const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+        if (!response.ok) {
+            if(response.status === 400) {
+                 alert("Kunci API Gemini tidak valid atau salah. Mohon periksa kembali di menu Pengaturan.");
+            } else {
+                 alert(`Terjadi kesalahan saat memanggil API: ${response.status}`);
+            }
+            throw new Error(`API call failed: ${response.status}`);
+        }
+        const result = await response.json();
+        if (result.candidates?.[0]?.content?.parts?.[0]?.text) return JSON.parse(result.candidates[0].content.parts[0].text);
+        return null;
+    } catch (error) { 
+        console.error("Error calling Gemini:", error); 
+        return null; 
+    }
+}
+
+// --- Fungsi Navigasi Halaman & UI ---
+const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.id === pageId));
+const openModal = (modalElement) => modalElement.classList.remove('hidden');
+const closeModal = (modalElement) => modalElement.classList.add('hidden');
+
+let confirmCallback = null;
+const showConfirmation = (message, callback) => { 
+    alertMessage.textContent = message; 
+    confirmCallback = callback; 
+    openModal(alertModal); 
+};
+
+function copyToClipboard(text, element) {
+    const textarea = document.createElement('textarea');
+    textarea.value = text;
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = 0;
+    document.body.appendChild(textarea);
+    textarea.select();
+    try {
+        document.execCommand('copy');
+        const originalIcon = element.innerHTML;
+        element.innerHTML = '<i class="fas fa-check text-green-500"></i>';
+        setTimeout(() => { element.innerHTML = originalIcon; }, 1500);
+    } catch (err) { 
+        console.error('Gagal menyalin teks: ', err); 
+        alert('Gagal menyalin teks.'); 
+    }
+    document.body.removeChild(textarea);
+}
+
+// --- Fungsi Render (Menampilkan data ke layar) ---
+const renderCategories = () => {
+    const categories = [...new Set(allPrompts.map(p => p.kategori).filter(Boolean))];
+    categoryGrid.innerHTML = '';
+    emptyStateCategories.classList.toggle('hidden', categories.length > 0);
+    categories.sort().forEach(cat => {
+        const promptCount = allPrompts.filter(p => p.kategori === cat).length;
+        const card = document.createElement('div');
+        card.className = 'category-card bg-white rounded-lg shadow p-6 flex flex-col items-center justify-center text-center cursor-pointer';
+        card.dataset.category = cat;
+        card.innerHTML = `<i class="fas fa-folder text-4xl text-indigo-500 mb-4"></i><h3 class="font-bold text-lg text-gray-800">${cat}</h3><p class="text-sm text-gray-500">${promptCount} prompt</p>`;
+        categoryGrid.appendChild(card);
+    });
+};
+
+const renderPrompts = (promptsToRender, title) => {
+    currentCategory = title.includes("Kategori:") ? title.replace("Kategori: ", "") : null;
+    promptListTitle.textContent = title;
+    promptList.innerHTML = '';
+    if (promptsToRender.length === 0) promptList.innerHTML = `<div class="text-center p-10 text-gray-500">Tidak ada prompt yang cocok.</div>`;
+    promptsToRender.forEach((prompt) => {
+        const item = document.createElement('div');
+        item.className = 'prompt-item flex flex-col sm:flex-row items-start sm:items-center p-4 gap-4 cursor-pointer';
+        item.dataset.id = prompt.id;
+        item.innerHTML = `<div class="flex-1"><h3 class="font-bold text-md text-gray-900 mb-1">${prompt.judul || 'Tanpa Judul'}</h3><p class="text-gray-600 text-sm pr-8">${prompt.promptText.substring(0, 150)}...</p></div>`;
+        promptList.appendChild(item);
+    });
+    showPage('page-prompts');
+};
+
+const renderPromptDetail = (prompt) => {
+    currentPromptId = prompt.id;
+    promptDetailContent.innerHTML = `<div class="bg-white rounded-lg shadow p-6"><div class="flex justify-between items-start"><div><h2 class="text-2xl font-bold text-gray-800">${prompt.judul}</h2><p class="text-sm text-gray-500 mb-4">Kategori: ${prompt.kategori}</p><p class="text-gray-700 whitespace-pre-wrap">${prompt.promptText}</p></div><div class="flex gap-3"><button id="edit-main-prompt-btn" class="text-gray-500 hover:text-blue-600" title="Edit Prompt Utama"><i class="fas fa-pencil-alt"></i></button><button id="delete-main-prompt-btn" class="text-gray-500 hover:text-red-600" title="Hapus Prompt Utama"><i class="fas fa-trash-alt"></i></button></div></div><button id="open-variation-generator-btn" class="mt-6 w-full bg-purple-100 text-purple-700 font-semibold px-4 py-2 rounded-lg hover:bg-purple-200 flex items-center justify-center gap-2"><i class="fas fa-wand-magic-sparkles"></i><span>Buat Variasi Baru</span></button></div>`;
+    if (unsubscribeVariations) unsubscribeVariations();
+    const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${prompt.id}/variations`;
+    unsubscribeVariations = onSnapshot(query(collection(db, variationsPath)), (snapshot) => {
+        const variations = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        renderVariationHistory(variations);
+    });
+    showPage('page-prompt-detail');
+};
+
+const renderVariationHistory = (variations) => {
+    variationHistoryList.innerHTML = '';
+    if (variations.length === 0) variationHistoryList.innerHTML = `<div class="text-center p-6 bg-white rounded-lg shadow text-gray-500 text-sm">Belum ada variasi yang disimpan.</div>`;
+    variations.forEach(v => {
+        const item = document.createElement('div');
+        item.className = 'bg-white rounded-lg shadow p-4';
+        item.innerHTML = `<p class="text-sm text-gray-700 whitespace-pre-wrap">${v.promptText}</p><div class="flex justify-end items-center gap-4 mt-3 pt-3 border-t"><button data-text="${v.promptText}" class="copy-variation-btn text-sm text-indigo-600 font-semibold hover:text-indigo-800">Salin</button><button data-id="${v.id}" class="delete-variation-btn text-sm text-red-600 font-semibold hover:text-red-800">Hapus</button></div>`;
+        variationHistoryList.appendChild(item);
+    });
+};
+
+const renderHistory = () => {
+    historyList.innerHTML = '';
+    if (importHistory.length === 0) historyList.innerHTML = `<div class="text-center p-10 text-gray-500">Belum ada riwayat impor.</div>`;
+    importHistory.sort((a, b) => b.timestamp - a.timestamp).forEach(item => {
+        const date = item.timestamp.toDate();
+        const formattedDate = date.toLocaleString('id-ID', { dateStyle: 'long', timeStyle: 'short' });
+        const historyItem = document.createElement('div');
+        historyItem.className = 'p-4 flex justify-between items-center';
+        historyItem.innerHTML = `<div><p class="font-semibold text-gray-800">${item.promptCount} prompt diimpor</p><p class="text-sm text-gray-500">Pada: ${formattedDate}</p></div><button data-import-id="${item.id}" class="delete-history-btn bg-red-100 text-red-700 px-3 py-1 rounded-md text-sm font-semibold hover:bg-red-200">Hapus Impor</button>`;
+        historyList.appendChild(historyItem);
+    });
+    showPage('page-history');
+};
+
+// --- Logika Firestore (Database) ---
+const setupListeners = () => {
+    if (!userId) return;
+    const promptsPath = `artifacts/${appId}/users/${userId}/prompts`;
+    if (unsubscribePrompts) unsubscribePrompts();
+    unsubscribePrompts = onSnapshot(query(collection(db, promptsPath)), (snapshot) => {
+        allPrompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
+    });
+    const historyPath = `artifacts/${appId}/users/${userId}/importHistory`;
+    if (unsubscribeHistory) unsubscribeHistory();
+    unsubscribeHistory = onSnapshot(query(collection(db, historyPath)), (snapshot) => {
+        importHistory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    });
+};
+
+const handleSavePrompt = async (e) => {
+    e.preventDefault();
+    if (!userId) return;
+    const promptData = { judul: document.getElementById('judul').value, kategori: document.getElementById('kategori').value, promptText: document.getElementById('promptText').value };
+    const id = document.getElementById('promptId').value;
+    const collectionPath = `artifacts/${appId}/users/${userId}/prompts`;
+    try {
+        if (id) await setDoc(doc(db, collectionPath, id), promptData);
+        else await addDoc(collection(db, collectionPath), promptData);
+        closeModal(modal);
+    } catch (error) { console.error("Error saving prompt:", error); }
+};
+
+const handleDeletePrompt = async (id, category) => {
+    if (!userId) return;
+    showConfirmation('Apakah Anda yakin ingin menghapus prompt utama ini beserta semua variasinya?', async () => {
+         try {
+            await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/prompts`, id));
+            showPage('page-prompts');
+            renderPrompts(allPrompts.filter(p => p.kategori === category), `Kategori: ${category}`);
+        } catch (error) { console.error("Error deleting prompt:", error); }
+    });
+};
+
+const handleDeleteVariation = async (variationId) => {
+    if (!userId || !currentPromptId) return;
+    const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
+    try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
+};
+
+const handleDeleteHistory = (importId) => {
+    if (!userId || !importId) return;
+    showConfirmation('Anda yakin ingin menghapus semua prompt dari sesi impor ini?', async () => {
+        const promptsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/prompts`), where("importId", "==", importId));
+        const promptsSnapshot = await getDocs(promptsQuery);
+        const batch = writeBatch(db);
+        promptsSnapshot.forEach(doc => batch.delete(doc.ref));
+        const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
+        batch.delete(historyDocRef);
+        try { await batch.commit(); alert("Sesi impor berhasil dihapus."); } 
+        catch (error) { console.error("Error deleting import session:", error); alert("Gagal menghapus sesi impor."); }
+    });
+};
+
+// --- Logika CSV & Ekspor ---
+function parseRobustCSV(csvText) {
+    const rows = []; let fields = []; let currentField = ''; let inQuotes = false;
+    const text = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+    for (let i = 0; i < text.length; i++) {
+        const char = text[i];
+        if (inQuotes) {
+            if (char === '"') {
+                if (i + 1 < text.length && text[i + 1] === '"') { currentField += '"'; i++; } 
+                else { inQuotes = false; }
+            } else { currentField += char; }
+        } else {
+            if (char === '"') { inQuotes = true; } 
+            else if (char === ',') { fields.push(currentField); currentField = ''; } 
+            else if (char === '\n') { fields.push(currentField); rows.push(fields); fields = []; currentField = ''; } 
+            else { currentField += char; }
+        }
+    }
+    if (currentField || fields.length > 0) { fields.push(currentField); rows.push(fields); }
+    return rows.filter(row => row.length > 0 && row.some(field => field.trim() !== ''));
+}
+const handleCsvImport = (event) => {
+    const file = event.target.files[0];
+    if (!file || !userId) return;
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+        const text = e.target.result;
+        const data = parseRobustCSV(text);
+        if (data.length < 2) { alert("File CSV tidak valid."); return; }
+        const headers = data[0].map(h => h.toLowerCase().trim());
+        const rows = data.slice(1);
+        const headerMap = { prompt: ['prompt', 'prompttext', 'prompt utama', 'prompt imajinasi lokal'], judul: ['judul', 'title'], kategori: ['kategori', 'category', 'tags'] };
+        const getIndex = keys => keys.reduce((acc, key) => acc !== -1 ? acc : headers.indexOf(key), -1);
+        const promptIdx = getIndex(headerMap.prompt);
+        if (promptIdx === -1) { alert("Kolom 'prompt' tidak ditemukan."); return; }
+        const judulIdx = getIndex(headerMap.judul);
+        const kategoriIdx = getIndex(headerMap.kategori);
+        const importId = crypto.randomUUID();
+        const promptsBatch = writeBatch(db);
+        const promptsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/prompts`);
+        rows.forEach(values => {
+            if (values.length <= promptIdx || !values[promptIdx]) return;
+            const promptText = values[promptIdx] || '';
+            const judul = judulIdx !== -1 ? values[judulIdx] : promptText.split(',')[0].substring(0, 50);
+            const newDocRef = doc(promptsCollectionRef);
+            promptsBatch.set(newDocRef, { promptText: promptText, judul: judul || 'Tanpa Judul', kategori: kategoriIdx !== -1 && values[kategoriIdx] ? values[kategoriIdx] : 'Impor', importId: importId });
+        });
+        const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
+        const historyBatch = writeBatch(db);
+        historyBatch.set(historyDocRef, { timestamp: serverTimestamp(), promptCount: rows.length, fileName: file.name });
+        try { await promptsBatch.commit(); await historyBatch.commit(); alert(`${rows.length} prompt berhasil diimpor.`); } 
+        catch (error) { console.error("Error importing:", error); }
+    };
+    reader.readAsText(file);
+    csvFileInput.value = '';
+};
+const handleExport = () => {
+    if (allPrompts.length === 0) { alert("Tidak ada data untuk diekspor."); return; }
+    const headers = ['judul', 'kategori', 'promptText'];
+    const csvRows = [headers.join(',')];
+    const escapeCsvField = (field) => `"${(field || '').toString().replace(/"/g, '""')}"`;
+    allPrompts.forEach(p => {
+        const row = [p.judul, p.kategori, p.promptText].map(escapeCsvField);
+        csvRows.push(row.join(','));
+    });
+    const csvString = csvRows.join('\r\n');
+    const blob = new Blob([csvString], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', 'prompts_export.csv');
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+};
+
+// --- Event Handlers ---
+categoryGrid.addEventListener('click', (e) => {
+    const card = e.target.closest('.category-card');
+    if (card) renderPrompts(allPrompts.filter(p => p.kategori === card.dataset.category), `Kategori: ${card.dataset.category}`);
+});
+
+promptList.addEventListener('click', (e) => {
+    const item = e.target.closest('.prompt-item');
+    if (item) {
+        const prompt = allPrompts.find(p => p.id === item.dataset.id);
+        if(prompt) renderPromptDetail(prompt);
+    }
+});
+
+promptDetailContent.addEventListener('click', e => {
+    const prompt = allPrompts.find(p => p.id === currentPromptId);
+    if (!prompt) return;
+    if (e.target.closest('#edit-main-prompt-btn')) {
+        promptForm.reset();
+        document.getElementById('promptId').value = prompt.id;
+        document.getElementById('judul').value = prompt.judul || '';
+        document.getElementById('kategori').value = prompt.kategori || '';
+        document.getElementById('promptText').value = prompt.promptText || '';
+        modalTitle.innerText = "Edit Prompt Utama";
+        openModal(modal);
+    } else if (e.target.closest('#delete-main-prompt-btn')) {
+        handleDeletePrompt(prompt.id, prompt.kategori);
+    } else if (e.target.closest('#open-variation-generator-btn')) {
+        originalPromptText.textContent = prompt.promptText;
+        variationResultsContainer.innerHTML = '';
+        poseVariationSelect.value = '';
+        clothingVariationSelect.value = '';
+        manualVariationInput.value = '';
+        openModal(variationModal);
+    }
+});
+
+variationHistoryList.addEventListener('click', e => {
+    if(e.target.closest('.copy-variation-btn')) copyToClipboard(e.target.closest('.copy-variation-btn').dataset.text, e.target);
+    else if (e.target.closest('.delete-variation-btn')) showConfirmation("Hapus variasi ini?", () => handleDeleteVariation(e.target.closest('.delete-variation-btn').dataset.id));
+});
+
+generateVariationBtn.addEventListener('click', async () => {
+    const prompt = allPrompts.find(p => p.id === currentPromptId);
+    if (!prompt) return;
+    let instruction = manualVariationInput.value.trim();
+    if (!instruction) {
+        const pose = poseVariationSelect.value;
+        const clothing = clothingVariationSelect.value;
+        if (pose) instruction = pose;
+        else if (clothing) instruction = clothing;
+    }
+    if (!instruction) { alert("Silakan pilih variasi terarah atau tulis perubahan manual."); return; }
+    variationSpinner.classList.remove('hidden');
+    generateVariationBtn.disabled = true;
+    variationResultsContainer.innerHTML = `<div class="flex justify-center items-center p-4"><div class="spinner"></div><p class="ml-3 text-sm text-gray-500">Membuat variasi...</p></div>`;
+    const result = await callGemini(prompt.promptText, { type: "OBJECT", properties: { "variations": { "type": "ARRAY", "items": { "type": "STRING" } } } });
+    variationResultsContainer.innerHTML = '';
+    variationSpinner.classList.add('hidden');
+    generateVariationBtn.disabled = false;
+    if (result && result.variations) {
+        result.variations.forEach((text) => {
+            const div = document.createElement('div');
+            div.className = 'variation-suggestion bg-white p-3 rounded-lg shadow-sm';
+            div.innerHTML = `<p class="text-sm">${text}</p><div class="flex justify-end gap-3 mt-2"><button data-text="${text}" class="copy-new-variation-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">Salin</button><button data-text="${text}" class="save-new-variation-btn text-sm font-semibold text-green-600 hover:text-green-800">Simpan ke Riwayat</button></div>`;
+            variationResultsContainer.appendChild(div);
+        });
+    } else {
+        variationResultsContainer.innerHTML = `<p class="text-red-500 text-sm p-4">Gagal membuat variasi. Silakan coba lagi.</p>`;
+    }
+});
+
+variationResultsContainer.addEventListener('click', async e => {
+    const text = e.target.dataset.text;
+    if (!text) return;
+    if (e.target.matches('.copy-new-variation-btn')) copyToClipboard(text, e.target);
+    else if (e.target.matches('.save-new-variation-btn')) {
+        e.target.textContent = 'Menyimpan...';
+        e.target.disabled = true;
+        const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
+        await addDoc(collection(db, path), { promptText: text, createdAt: serverTimestamp() });
+    }
+});
+
+suggestMetadataBtn.addEventListener('click', async () => {
+    const promptText = document.getElementById('promptText').value;
+    if (!promptText) { alert("Mohon isi Prompt Teks terlebih dahulu."); return; }
+    metadataSpinner.classList.remove('hidden');
+    suggestMetadataBtn.disabled = true;
+    const prompt = `Berdasarkan prompt gambar AI berikut, sarankan satu judul singkat (maksimal 5 kata) dan satu nama kategori yang paling relevan. Prompt: "${promptText}"`;
+    const schema = { type: "OBJECT", properties: { "title": { "type": "STRING" }, "category": { "type": "STRING" } } };
+    const result = await callGemini(prompt, schema);
+    if (result) {
+        document.getElementById('judul').value = result.title || '';
+        document.getElementById('kategori').value = result.category || '';
+    } else {
+        alert("Gagal mendapatkan saran. Silakan coba lagi.");
+    }
+    metadataSpinner.classList.add('hidden');
+    suggestMetadataBtn.disabled = false;
+});
+
+globalSearchInput.addEventListener('input', (e) => {
+    const searchTerm = e.target.value.toLowerCase();
+    if (searchTerm.length < 3) {
+        if (!document.getElementById('page-categories').classList.contains('active')) showPage('page-categories');
+        return;
+    }
+    const results = allPrompts.filter(p => p.judul.toLowerCase().includes(searchTerm) || p.promptText.toLowerCase().includes(searchTerm));
+    renderPrompts(results, `Hasil Pencarian untuk: "${searchTerm}"`);
+});
+
+historyList.addEventListener('click', (e) => {
+    const deleteBtn = e.target.closest('.delete-history-btn');
+    if (deleteBtn) handleDeleteHistory(deleteBtn.dataset.importId);
+});
+
+backToCategoriesBtn.addEventListener('click', () => showPage('page-categories'));
+backToPromptsBtn.addEventListener('click', () => renderPrompts(allPrompts.filter(p => p.kategori === currentCategory), `Kategori: ${currentCategory}`));
+backToCategoriesBtnFromHistory.addEventListener('click', () => showPage('page-categories'));
+historyBtn.addEventListener('click', () => renderHistory());
+addPromptBtn.addEventListener('click', () => { promptForm.reset(); modalTitle.innerText = "Tambah Prompt Baru"; openModal(modal); });
+importCsvBtn.addEventListener('click', () => csvFileInput.click());
+exportBtn.addEventListener('click', handleExport);
+csvFileInput.addEventListener('change', handleCsvImport);
+closeModalBtn.addEventListener('click', () => closeModal(modal));
+cancelBtn.addEventListener('click', () => closeModal(modal));
+closeVariationModalBtn.addEventListener('click', () => closeModal(variationModal));
+closeVariationModalBtnFooter.addEventListener('click', () => closeModal(variationModal));
+variationModal.addEventListener('click', (e) => { if (e.target === variationModal) { closeModal(variationModal); } });
+promptForm.addEventListener('submit', handleSavePrompt);
+alertCancelBtn.addEventListener('click', () => closeModal(alertModal));
+alertConfirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(alertModal); });
+
+settingsBtn.addEventListener('click', () => {
+    apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
+    openModal(settingsModal);
+});
+closeSettingsModalBtn.addEventListener('click', () => closeModal(settingsModal));
+saveApiKeyBtn.addEventListener('click', () => {
+    const key = apiKeyInput.value.trim();
+    if (key) {
+        localStorage.setItem('geminiApiKey', key);
+        alert("Kunci API berhasil disimpan.");
+        closeModal(settingsModal);
+    } else {
+        alert("Mohon masukkan kunci API.");
+    }
+});
+
+// --- Listener Autentikasi ---
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        userId = user.uid;
+        userInfo.textContent = `User ID: ${userId}`;
+        setupListeners();
+        showPage('page-categories');
+    } else {
+        try {
+            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+            if (token) await signInWithCustomToken(auth, token);
+            else await signInAnonymously(auth);
+        } catch (error) { console.error("Auth failed:", error); }
+    }
+});

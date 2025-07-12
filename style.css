@@ -1,0 +1,56 @@
+/* Mengatur font dasar dan warna latar belakang untuk seluruh halaman */
+body { 
+    font-family: 'Inter', sans-serif; 
+    background-color: #f3f4f6; 
+}
+
+/* Efek transisi untuk kartu kategori saat mouse diarahkan */
+.category-card { 
+    transition: transform 0.2s, box-shadow 0.2s; 
+}
+.category-card:hover { 
+    transform: translateY(-5px); 
+    box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1); 
+}
+
+/* Efek latar belakang saat mouse diarahkan ke item prompt */
+.prompt-item:hover { 
+    background-color: #fafafa; 
+}
+
+/* Mengatur visibilitas halaman, hanya halaman 'active' yang ditampilkan */
+.page { 
+    display: none; 
+}
+.page.active { 
+    display: block; 
+}
+
+/* Latar belakang gelap transparan untuk jendela modal */
+.modal-backdrop { 
+    background-color: rgba(0,0,0,0.5); 
+}
+
+/* Gaya untuk ikon loading (spinner) */
+.spinner { 
+    border: 2px solid rgba(0, 0, 0, 0.1); 
+    width: 16px; 
+    height: 16px; 
+    border-radius: 50%; 
+    border-left-color: #4f46e5; 
+    animation: spin 1s ease infinite; 
+}
+
+/* Animasi putaran untuk spinner */
+@keyframes spin { 
+    0% { transform: rotate(0deg); } 
+    100% { transform: rotate(360deg); } 
+}
+
+/* Gaya untuk kotak saran variasi dari AI */
+.variation-suggestion { 
+    border: 1px solid #e5e7eb; 
+    padding: 0.75rem; 
+    border-radius: 0.5rem; 
+    transition: background-color 0.2s; 
+}
