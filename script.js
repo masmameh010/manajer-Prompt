@@ -6,13 +6,15 @@ import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, q
 // Ganti objek kosong di bawah ini dengan konfigurasi dari proyek Firebase Anda.
 // Anda bisa mendapatkannya dari Project settings > General > Your apps > Web app.
 const firebaseConfig = {
-  // apiKey: "AIzaSy...",
-  // authDomain: "proyek-anda.firebaseapp.com",
-  // projectId: "proyek-anda",
-  // storageBucket: "proyek-anda.appspot.com",
-  // messagingSenderId: "...",
-  // appId: "..."
-};
+  apiKey: "AIzaSyA0hPu7lHjX-j_w4A9G8zIYjR1EgudZhx4",
+    authDomain: "manager-prompt-lokal.firebaseapp.com",
+    databaseURL: "https://manager-prompt-lokal-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "manager-prompt-lokal",
+    storageBucket: "manager-prompt-lokal.firebasestorage.app",
+    messagingSenderId: "357496600242",
+    appId: "1:357496600242:web:a7e8d76f6c872f2da63bab",
+    measurementId: "G-E2QDQ3R2CF"
+  };
 // ----------------------------------------------
 
 const appId = firebaseConfig.projectId || 'default-imajinasi-lokal';
