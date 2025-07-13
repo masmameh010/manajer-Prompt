@@ -340,6 +340,7 @@ const handleDeleteVariation = async (variationId) => {
     const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
     try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
 };
+// ### PERBAIKAN ###: Fungsi hapus riwayat impor sekarang jauh lebih cepat dan andal
 const handleDeleteHistory = (importId) => {
     if (!userId || !importId) return;
     showConfirmation('Anda yakin ingin menghapus semua prompt dari sesi impor ini?', async () => {
