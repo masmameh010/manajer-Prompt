@@ -70,8 +70,9 @@ const modalTitle = document.getElementById('modalTitle');
 const userInfo = document.getElementById('userInfo');
 const alertModal = document.getElementById('alertModal');
 const alertMessage = document.getElementById('alertMessage');
-const alertConfirmBtn = document.getElementById('alertConfirmBtn');
-const alertCancelBtn = document.getElementById('alertCancelBtn');
+// ### PERBAIKAN ###: Ubah ke `let` agar bisa di-clone untuk menghapus listener
+let alertConfirmBtn = document.getElementById('alertConfirmBtn');
+let alertCancelBtn = document.getElementById('alertCancelBtn');
 const variationModal = document.getElementById('variationModal');
 const closeVariationModalBtn = document.getElementById('closeVariationModalBtn');
 const closeVariationModalBtnFooter = document.getElementById('closeVariationModalBtnFooter');
@@ -143,27 +144,24 @@ const showConfirmation = (message, onConfirm) => {
 
     alertMessage.textContent = message;
 
-    const handleConfirm = () => {
+    // Untuk menghapus semua "ghost" listener, kita clone tombolnya.
+    // Ini adalah cara paling ampuh untuk memastikan tombol dalam keadaan bersih.
+    const newConfirmBtn = alertConfirmBtn.cloneNode(true);
+    alertConfirmBtn.parentNode.replaceChild(newConfirmBtn, alertConfirmBtn);
+    alertConfirmBtn = newConfirmBtn;
+
+    const newCancelBtn = alertCancelBtn.cloneNode(true);
+    alertCancelBtn.parentNode.replaceChild(newCancelBtn, alertCancelBtn);
+    alertCancelBtn = newCancelBtn;
+
+    // Tambahkan listener yang baru dan bersih
+    alertConfirmBtn.addEventListener('click', () => {
         onConfirm();
-        cleanup();
-    };
-
-    const handleCancel = () => {
-        cleanup();
-    };
-
-    const cleanup = () => {
         closeModal(alertModal);
-        alertConfirmBtn.removeEventListener('click', handleConfirm);
-        alertCancelBtn.removeEventListener('click', handleCancel);
-    };
-
-    // Hapus listener lama sebelum menambahkan yang baru untuk mencegah duplikasi
-    alertConfirmBtn.removeEventListener('click', handleConfirm);
-    alertCancelBtn.removeEventListener('click', handleCancel);
-
-    alertConfirmBtn.addEventListener('click', handleConfirm);
-    alertCancelBtn.addEventListener('click', handleCancel);
+    });
+    alertCancelBtn.addEventListener('click', () => {
+        closeModal(alertModal);
+    });
 
     openModal(alertModal);
 };
@@ -342,7 +340,6 @@ const handleDeleteVariation = async (variationId) => {
     const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
     try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
 };
-// ### PERBAIKAN ###: Fungsi hapus riwayat impor sekarang jauh lebih cepat dan andal
 const handleDeleteHistory = (importId) => {
     if (!userId || !importId) return;
     showConfirmation('Anda yakin ingin menghapus semua prompt dari sesi impor ini?', async () => {
@@ -354,26 +351,20 @@ const handleDeleteHistory = (importId) => {
 
             console.log(`Ditemukan ${promptsSnapshot.docs.length} prompt untuk dihapus.`);
 
-            // Loop melalui setiap prompt untuk menemukan variasinya
             for (const promptDoc of promptsSnapshot.docs) {
-                // Pertama, temukan semua variasi untuk prompt ini
                 const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${promptDoc.id}/variations`;
                 const variationsSnapshot = await getDocs(collection(db, variationsPath));
                 
-                // Tambahkan setiap variasi ke batch untuk dihapus
                 variationsSnapshot.forEach(variationDoc => {
                     batch.delete(variationDoc.ref);
                 });
 
-                // Tambahkan prompt utama ke batch untuk dihapus
                 batch.delete(promptDoc.ref);
             }
             
-            // Tambahkan dokumen riwayat itu sendiri ke batch
             const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
             batch.delete(historyDocRef);
 
-            // Jalankan satu batch besar untuk semua penghapusan
             await batch.commit();
             
             alert("Sesi impor dan semua prompt terkait berhasil dihapus.");
@@ -650,8 +641,9 @@ closeVariationModalBtn.addEventListener('click', () => closeModal(variationModal
 closeVariationModalBtnFooter.addEventListener('click', () => closeModal(variationModal));
 variationModal.addEventListener('click', (e) => { if (e.target === variationModal) { closeModal(variationModal); } });
 promptForm.addEventListener('submit', handleSavePrompt);
-alertCancelBtn.addEventListener('click', () => closeModal(alertModal));
-alertConfirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(alertModal); });
+// ### PERBAIKAN ###: Event listener untuk tombol modal konfirmasi sekarang ada di dalam fungsi showConfirmation
+// alertCancelBtn.addEventListener('click', () => closeModal(alertModal));
+// alertConfirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(alertModal); });
 settingsBtn.addEventListener('click', () => {
     apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
     openModal(settingsModal);
