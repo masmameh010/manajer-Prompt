@@ -125,12 +125,22 @@ async function callGemini(prompt, schema) {
     }
 }
 
-// --- Fungsi Navigasi Halaman & UI (Tidak berubah) ---
+// --- Fungsi Navigasi Halaman & UI ---
 const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.id === pageId));
 const openModal = (modalElement) => modalElement.classList.remove('hidden');
 const closeModal = (modalElement) => modalElement.classList.add('hidden');
+
+// ### PERBAIKAN ###: Fungsi konfirmasi sekarang lebih andal
 let confirmCallback = null;
 const showConfirmation = (message, callback) => { 
+    if (!alertModal || !alertMessage) {
+        console.error("Elemen modal konfirmasi tidak ditemukan!");
+        // Fallback ke confirm bawaan browser jika modal kustom gagal
+        if (confirm(message)) {
+            callback();
+        }
+        return;
+    }
     alertMessage.textContent = message; 
     confirmCallback = callback; 
     openModal(alertModal); 
@@ -183,10 +193,9 @@ const renderPrompts = (promptsToRender, title) => {
     });
     showPage('page-prompts');
 };
-// ### PERUBAHAN DIMULAI DI SINI ###
+// ### PERBAIKAN ###: Fungsi render detail sekarang menyertakan tombol salin
 const renderPromptDetail = (prompt) => {
     currentPromptId = prompt.id;
-    // Menambahkan tombol salin baru dengan id="copy-main-prompt-btn"
     promptDetailContent.innerHTML = `<div class="bg-white rounded-lg shadow p-6">
         <div class="flex justify-between items-start">
             <div>
@@ -194,14 +203,14 @@ const renderPromptDetail = (prompt) => {
                 <p class="text-sm text-gray-500 mb-4">Kategori: ${prompt.kategori}</p>
                 <p class="text-gray-700 whitespace-pre-wrap">${prompt.promptText}</p>
             </div>
-            <div class="flex items-center gap-3">
-                <button id="copy-main-prompt-btn" class="text-gray-500 hover:text-indigo-600" title="Salin Prompt Utama">
+            <div class="flex items-center gap-4">
+                <button id="copy-main-prompt-btn" class="text-gray-500 hover:text-indigo-600 text-lg" title="Salin Prompt Utama">
                     <i class="fas fa-copy"></i>
                 </button>
-                <button id="edit-main-prompt-btn" class="text-gray-500 hover:text-blue-600" title="Edit Prompt Utama">
+                <button id="edit-main-prompt-btn" class="text-gray-500 hover:text-blue-600 text-lg" title="Edit Prompt Utama">
                     <i class="fas fa-pencil-alt"></i>
                 </button>
-                <button id="delete-main-prompt-btn" class="text-gray-500 hover:text-red-600" title="Hapus Prompt Utama">
+                <button id="delete-main-prompt-btn" class="text-gray-500 hover:text-red-600 text-lg" title="Hapus Prompt Utama">
                     <i class="fas fa-trash-alt"></i>
                 </button>
             </div>
@@ -211,7 +220,6 @@ const renderPromptDetail = (prompt) => {
             <span>Buat Variasi Baru</span>
         </button>
     </div>`;
-    // ### PERUBAHAN SELESAI DI SINI ###
 
     if (unsubscribeVariations) unsubscribeVariations();
     const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${prompt.id}/variations`;
@@ -319,11 +327,24 @@ const handleDeleteHistory = (importId) => {
         const promptsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/prompts`), where("importId", "==", importId));
         const promptsSnapshot = await getDocs(promptsQuery);
         const batch = writeBatch(db);
-        promptsSnapshot.forEach(doc => batch.delete(doc.ref));
+        promptsSnapshot.forEach(doc => {
+            // Kita juga harus menghapus subkoleksi variasi dari setiap prompt yang diimpor
+            const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${doc.id}/variations`;
+            // Ini adalah operasi asinkron, idealnya kita kumpulkan semua promise
+            // Namun untuk kesederhanaan, kita hapus satu per satu. Ini mungkin lambat untuk impor besar.
+            deleteCollection(variationsPath);
+            batch.delete(doc.ref);
+        });
         const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
         batch.delete(historyDocRef);
-        try { await batch.commit(); alert("Sesi impor berhasil dihapus."); } 
-        catch (error) { console.error("Error deleting import session:", error); alert("Gagal menghapus sesi impor."); }
+        try { 
+            await batch.commit(); 
+            alert("Sesi impor berhasil dihapus."); 
+        } 
+        catch (error) { 
+            console.error("Error deleting import session:", error); 
+            alert("Gagal menghapus sesi impor."); 
+        }
     });
 };
 
@@ -416,7 +437,7 @@ promptList.addEventListener('click', (e) => {
         if(prompt) renderPromptDetail(prompt);
     }
 });
-// ### PERUBAHAN DIMULAI DI SINI ###
+// ### PERBAIKAN ###: Event listener untuk detail prompt sekarang lebih terstruktur
 promptDetailContent.addEventListener('click', e => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
@@ -451,10 +472,18 @@ promptDetailContent.addEventListener('click', e => {
         openModal(variationModal);
     }
 });
-// ### PERUBAHAN SELESAI DI SINI ###
+// ### PERBAIKAN ###: Event listener untuk riwayat variasi sekarang memanggil konfirmasi
 variationHistoryList.addEventListener('click', e => {
-    if(e.target.closest('.copy-variation-btn')) copyToClipboard(e.target.closest('.copy-variation-btn').dataset.text, e.target);
-    else if (e.target.closest('.delete-variation-btn')) showConfirmation("Hapus variasi ini?", () => handleDeleteVariation(e.target.closest('.delete-variation-btn').dataset.id));
+    const copyBtn = e.target.closest('.copy-variation-btn');
+    const deleteBtn = e.target.closest('.delete-variation-btn');
+
+    if (copyBtn) {
+        copyToClipboard(copyBtn.dataset.text, copyBtn);
+    } else if (deleteBtn) {
+        showConfirmation("Anda yakin ingin menghapus variasi ini?", () => {
+            handleDeleteVariation(deleteBtn.dataset.id);
+        });
+    }
 });
 generateVariationBtn.addEventListener('click', async () => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
@@ -538,9 +567,12 @@ globalSearchInput.addEventListener('input', (e) => {
     const results = allPrompts.filter(p => p.judul.toLowerCase().includes(searchTerm) || p.promptText.toLowerCase().includes(searchTerm));
     renderPrompts(results, `Hasil Pencarian untuk: "${searchTerm}"`);
 });
+// ### PERBAIKAN ###: Event listener untuk riwayat impor sekarang memanggil konfirmasi
 historyList.addEventListener('click', (e) => {
     const deleteBtn = e.target.closest('.delete-history-btn');
-    if (deleteBtn) handleDeleteHistory(deleteBtn.dataset.importId);
+    if (deleteBtn) {
+        handleDeleteHistory(deleteBtn.dataset.importId);
+    }
 });
 backToCategoriesBtn.addEventListener('click', () => showPage('page-categories'));
 backToPromptsBtn.addEventListener('click', () => renderPrompts(allPrompts.filter(p => p.kategori === currentCategory), `Kategori: ${currentCategory}`));
