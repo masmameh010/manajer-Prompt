@@ -10,16 +10,17 @@ import {
 import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, query, writeBatch, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // --- KONFIGURASI FIREBASE ANDA ---
+// Konfigurasi ini sekarang diambil dari window object yang disuntikkan oleh Netlify atau diisi manual
 const firebaseConfig = {
-  apiKey: "AIzaSyA0hPu7lHjX-j_w4A9G8zIYjR1EgudZhx4",
-  authDomain: "manager-prompt-lokal.firebaseapp.com",
-  databaseURL: "https://manager-prompt-lokal-default-rtdb.asia-southeast1.firebasedatabase.app",
-  projectId: "manager-prompt-lokal",
-  storageBucket: "manager-prompt-lokal.firebasestorage.app",
-  messagingSenderId: "357496600242",
-  appId: "1:357496600242:web:f1f9adb39b9d4304a63bab",
-  measurementId: "G-46WTHJN6YX"
-};
+    apiKey: "AIzaSyA0hPu7lHjX-j_w4A9G8zIYjR1EgudZhx4",
+    authDomain: "manager-prompt-lokal.firebaseapp.com",
+    databaseURL: "https://manager-prompt-lokal-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "manager-prompt-lokal",
+    storageBucket: "manager-prompt-lokal.firebasestorage.app",
+    messagingSenderId: "357496600242",
+    appId: "1:357496600242:web:f1f9adb39b9d4304a63bab",
+    measurementId: "G-46WTHJN6YX"
+  };
 // ----------------------------------------------
 
 // Inisialisasi Firebase
@@ -182,9 +183,36 @@ const renderPrompts = (promptsToRender, title) => {
     });
     showPage('page-prompts');
 };
+// ### PERUBAHAN DIMULAI DI SINI ###
 const renderPromptDetail = (prompt) => {
     currentPromptId = prompt.id;
-    promptDetailContent.innerHTML = `<div class="bg-white rounded-lg shadow p-6"><div class="flex justify-between items-start"><div><h2 class="text-2xl font-bold text-gray-800">${prompt.judul}</h2><p class="text-sm text-gray-500 mb-4">Kategori: ${prompt.kategori}</p><p class="text-gray-700 whitespace-pre-wrap">${prompt.promptText}</p></div><div class="flex gap-3"><button id="edit-main-prompt-btn" class="text-gray-500 hover:text-blue-600" title="Edit Prompt Utama"><i class="fas fa-pencil-alt"></i></button><button id="delete-main-prompt-btn" class="text-gray-500 hover:text-red-600" title="Hapus Prompt Utama"><i class="fas fa-trash-alt"></i></button></div></div><button id="open-variation-generator-btn" class="mt-6 w-full bg-purple-100 text-purple-700 font-semibold px-4 py-2 rounded-lg hover:bg-purple-200 flex items-center justify-center gap-2"><i class="fas fa-wand-magic-sparkles"></i><span>Buat Variasi Baru</span></button></div>`;
+    // Menambahkan tombol salin baru dengan id="copy-main-prompt-btn"
+    promptDetailContent.innerHTML = `<div class="bg-white rounded-lg shadow p-6">
+        <div class="flex justify-between items-start">
+            <div>
+                <h2 class="text-2xl font-bold text-gray-800">${prompt.judul}</h2>
+                <p class="text-sm text-gray-500 mb-4">Kategori: ${prompt.kategori}</p>
+                <p class="text-gray-700 whitespace-pre-wrap">${prompt.promptText}</p>
+            </div>
+            <div class="flex items-center gap-3">
+                <button id="copy-main-prompt-btn" class="text-gray-500 hover:text-indigo-600" title="Salin Prompt Utama">
+                    <i class="fas fa-copy"></i>
+                </button>
+                <button id="edit-main-prompt-btn" class="text-gray-500 hover:text-blue-600" title="Edit Prompt Utama">
+                    <i class="fas fa-pencil-alt"></i>
+                </button>
+                <button id="delete-main-prompt-btn" class="text-gray-500 hover:text-red-600" title="Hapus Prompt Utama">
+                    <i class="fas fa-trash-alt"></i>
+                </button>
+            </div>
+        </div>
+        <button id="open-variation-generator-btn" class="mt-6 w-full bg-purple-100 text-purple-700 font-semibold px-4 py-2 rounded-lg hover:bg-purple-200 flex items-center justify-center gap-2">
+            <i class="fas fa-wand-magic-sparkles"></i>
+            <span>Buat Variasi Baru</span>
+        </button>
+    </div>`;
+    // ### PERUBAHAN SELESAI DI SINI ###
+
     if (unsubscribeVariations) unsubscribeVariations();
     const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${prompt.id}/variations`;
     unsubscribeVariations = onSnapshot(query(collection(db, variationsPath)), (snapshot) => {
@@ -388,10 +416,19 @@ promptList.addEventListener('click', (e) => {
         if(prompt) renderPromptDetail(prompt);
     }
 });
+// ### PERUBAHAN DIMULAI DI SINI ###
 promptDetailContent.addEventListener('click', e => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
-    if (e.target.closest('#edit-main-prompt-btn')) {
+
+    const copyBtn = e.target.closest('#copy-main-prompt-btn');
+    const editBtn = e.target.closest('#edit-main-prompt-btn');
+    const deleteBtn = e.target.closest('#delete-main-prompt-btn');
+    const variationBtn = e.target.closest('#open-variation-generator-btn');
+
+    if (copyBtn) {
+        copyToClipboard(prompt.promptText, copyBtn);
+    } else if (editBtn) {
         promptForm.reset();
         document.getElementById('promptId').value = prompt.id;
         document.getElementById('judul').value = prompt.judul || '';
@@ -399,9 +436,9 @@ promptDetailContent.addEventListener('click', e => {
         document.getElementById('promptText').value = prompt.promptText || '';
         modalTitle.innerText = "Edit Prompt Utama";
         openModal(modal);
-    } else if (e.target.closest('#delete-main-prompt-btn')) {
+    } else if (deleteBtn) {
         handleDeletePrompt(prompt.id, prompt.kategori);
-    } else if (e.target.closest('#open-variation-generator-btn')) {
+    } else if (variationBtn) {
         originalPromptText.textContent = prompt.promptText;
         variationResultsContainer.innerHTML = '';
         manualVariationInput.value = '';
@@ -414,6 +451,7 @@ promptDetailContent.addEventListener('click', e => {
         openModal(variationModal);
     }
 });
+// ### PERUBAHAN SELESAI DI SINI ###
 variationHistoryList.addEventListener('click', e => {
     if(e.target.closest('.copy-variation-btn')) copyToClipboard(e.target.closest('.copy-variation-btn').dataset.text, e.target);
     else if (e.target.closest('.delete-variation-btn')) showConfirmation("Hapus variasi ini?", () => handleDeleteVariation(e.target.closest('.delete-variation-btn').dataset.id));
@@ -537,69 +575,44 @@ saveApiKeyBtn.addEventListener('click', () => {
 });
 
 // --- Logika Autentikasi ---
-
-// Fungsi untuk menangani login dengan Google
 const handleGoogleLogin = async () => {
     const provider = new GoogleAuthProvider();
     try {
         await signInWithPopup(auth, provider);
-        // onAuthStateChanged akan menangani sisanya
     } catch (error) {
         console.error("Google sign-in error:", error);
         alert("Gagal masuk dengan Google. Silakan coba lagi.");
     }
 };
-
-// Fungsi untuk menangani logout
 const handleLogout = async () => {
     try {
         await signOut(auth);
-        // onAuthStateChanged akan menangani sisanya
     } catch (error) {
         console.error("Sign-out error:", error);
     }
 };
-
-// Tambahkan event listener ke tombol login dan logout
 loginBtn.addEventListener('click', handleGoogleLogin);
 logoutBtn.addEventListener('click', handleLogout);
-
-// Listener utama untuk status autentikasi
 onAuthStateChanged(auth, (user) => {
     if (user) {
-        // --- Pengguna berhasil login ---
         userId = user.uid;
-
-        // Tampilkan konten aplikasi, sembunyikan halaman login
         appContainer.classList.remove('hidden');
         loginPage.classList.remove('active');
         loginPage.classList.add('hidden');
-        
-        // Tampilkan informasi pengguna
         userInfo.innerHTML = `
             <img src="${user.photoURL}" alt="Foto Profil" class="profile-picture">
             <span class="font-semibold text-gray-700">${user.displayName}</span>
         `;
-        
-        // Mulai mendengarkan data dari Firestore
         setupListeners();
         showPage('page-categories');
-
     } else {
-        // --- Pengguna logout atau belum login ---
         userId = null;
-        
-        // Tampilkan halaman login, sembunyikan konten aplikasi
         appContainer.classList.add('hidden');
         loginPage.classList.remove('hidden');
         loginPage.classList.add('active');
-
-        // Hentikan semua listener Firestore untuk mencegah error
         if (unsubscribePrompts) unsubscribePrompts();
         if (unsubscribeHistory) unsubscribeHistory();
         if (unsubscribeVariations) unsubscribeVariations();
-
-        // Kosongkan data lokal
         allPrompts = [];
         importHistory = [];
         categoryGrid.innerHTML = '';
