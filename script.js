@@ -1,10 +1,15 @@
-import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, query, writeBatch, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+// Impor fungsi yang dibutuhkan dari Firebase SDK
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
+import { 
+    getAuth, 
+    onAuthStateChanged, 
+    GoogleAuthProvider, 
+    signInWithPopup, 
+    signOut 
+} from "https://www.gstatic.com/firebasejs/11.10.0/firebase-auth.js";
+import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, query, writeBatch, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
-// --- LANGKAH PENTING: KONFIGURASI FIREBASE ---
-// Ganti objek kosong di bawah ini dengan konfigurasi dari proyek Firebase Anda.
-// Anda bisa mendapatkannya dari Project settings > General > Your apps > Web app.
+// --- KONFIGURASI FIREBASE ANDA ---
 const firebaseConfig = {
   apiKey: "AIzaSyA0hPu7lHjX-j_w4A9G8zIYjR1EgudZhx4",
   authDomain: "manager-prompt-lokal.firebaseapp.com",
@@ -17,11 +22,13 @@ const firebaseConfig = {
 };
 // ----------------------------------------------
 
+// Inisialisasi Firebase
 const appId = firebaseConfig.projectId || 'default-imajinasi-lokal';
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
+// Variabel Global
 let userId = null;
 let unsubscribePrompts = null;
 let unsubscribeHistory = null;
@@ -31,7 +38,11 @@ let importHistory = [];
 let currentPromptId = null;
 let currentCategory = null;
 
-// --- Selektor DOM (Mengambil elemen HTML) ---
+// --- Selektor DOM ---
+const loginPage = document.getElementById('page-login');
+const appContainer = document.getElementById('app-container');
+const loginBtn = document.getElementById('loginBtn');
+const logoutBtn = document.getElementById('logoutBtn');
 const pages = document.querySelectorAll('.page');
 const categoryGrid = document.getElementById('category-grid');
 const promptList = document.getElementById('prompt-list');
@@ -46,7 +57,6 @@ const promptDetailContent = document.getElementById('prompt-detail-content');
 const variationHistoryList = document.getElementById('variation-history-list');
 const globalSearchInput = document.getElementById('globalSearchInput');
 const settingsBtn = document.getElementById('settingsBtn');
-
 const addPromptBtn = document.getElementById('addPromptBtn');
 const importCsvBtn = document.getElementById('importCsvBtn');
 const exportBtn = document.getElementById('exportBtn');
@@ -61,29 +71,29 @@ const alertModal = document.getElementById('alertModal');
 const alertMessage = document.getElementById('alertMessage');
 const alertConfirmBtn = document.getElementById('alertConfirmBtn');
 const alertCancelBtn = document.getElementById('alertCancelBtn');
-
-// Selektor DOM untuk Modal Variasi
 const variationModal = document.getElementById('variationModal');
 const closeVariationModalBtn = document.getElementById('closeVariationModalBtn');
 const closeVariationModalBtnFooter = document.getElementById('closeVariationModalBtnFooter');
 const originalPromptText = document.getElementById('originalPromptText');
-const poseVariationSelect = document.getElementById('pose-variation');
-const clothingVariationSelect = document.getElementById('clothing-variation');
 const manualVariationInput = document.getElementById('manual-variation');
 const generateVariationBtn = document.getElementById('generate-variation-btn');
 const variationSpinner = document.getElementById('variation-spinner');
 const variationResultsContainer = document.getElementById('variation-results-container');
 const suggestMetadataBtn = document.getElementById('suggestMetadataBtn');
 const metadataSpinner = document.getElementById('metadata-spinner');
-
-// Selektor DOM untuk Modal Pengaturan
+const poseVariationSelect = document.getElementById('pose-variation');
+const clothingVariationSelect = document.getElementById('clothing-variation');
+const expressionVariationSelect = document.getElementById('expression-variation');
+const hairstyleVariationSelect = document.getElementById('hairstyle-variation');
+const backgroundVariationSelect = document.getElementById('background-variation');
+const cameraAngleVariationSelect = document.getElementById('camera-angle-variation');
 const settingsModal = document.getElementById('settingsModal');
 const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 
 
-// --- Fungsi Panggilan API Gemini ---
+// --- Fungsi Panggilan API Gemini (Tidak berubah) ---
 async function callGemini(prompt, schema) {
     const apiKey = localStorage.getItem('geminiApiKey');
     if (!apiKey) {
@@ -114,18 +124,16 @@ async function callGemini(prompt, schema) {
     }
 }
 
-// --- Fungsi Navigasi Halaman & UI ---
+// --- Fungsi Navigasi Halaman & UI (Tidak berubah) ---
 const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.id === pageId));
 const openModal = (modalElement) => modalElement.classList.remove('hidden');
 const closeModal = (modalElement) => modalElement.classList.add('hidden');
-
 let confirmCallback = null;
 const showConfirmation = (message, callback) => { 
     alertMessage.textContent = message; 
     confirmCallback = callback; 
     openModal(alertModal); 
 };
-
 function copyToClipboard(text, element) {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -145,11 +153,12 @@ function copyToClipboard(text, element) {
     document.body.removeChild(textarea);
 }
 
-// --- Fungsi Render (Menampilkan data ke layar) ---
+// --- Fungsi Render ---
 const renderCategories = () => {
     const categories = [...new Set(allPrompts.map(p => p.kategori).filter(Boolean))];
     categoryGrid.innerHTML = '';
-    emptyStateCategories.classList.toggle('hidden', categories.length > 0);
+    emptyStateCategories.classList.toggle('hidden', categories.length > 0 || !allPrompts);
+    if (!allPrompts || categories.length === 0) return;
     categories.sort().forEach(cat => {
         const promptCount = allPrompts.filter(p => p.kategori === cat).length;
         const card = document.createElement('div');
@@ -159,7 +168,6 @@ const renderCategories = () => {
         categoryGrid.appendChild(card);
     });
 };
-
 const renderPrompts = (promptsToRender, title) => {
     currentCategory = title.includes("Kategori:") ? title.replace("Kategori: ", "") : null;
     promptListTitle.textContent = title;
@@ -174,7 +182,6 @@ const renderPrompts = (promptsToRender, title) => {
     });
     showPage('page-prompts');
 };
-
 const renderPromptDetail = (prompt) => {
     currentPromptId = prompt.id;
     promptDetailContent.innerHTML = `<div class="bg-white rounded-lg shadow p-6"><div class="flex justify-between items-start"><div><h2 class="text-2xl font-bold text-gray-800">${prompt.judul}</h2><p class="text-sm text-gray-500 mb-4">Kategori: ${prompt.kategori}</p><p class="text-gray-700 whitespace-pre-wrap">${prompt.promptText}</p></div><div class="flex gap-3"><button id="edit-main-prompt-btn" class="text-gray-500 hover:text-blue-600" title="Edit Prompt Utama"><i class="fas fa-pencil-alt"></i></button><button id="delete-main-prompt-btn" class="text-gray-500 hover:text-red-600" title="Hapus Prompt Utama"><i class="fas fa-trash-alt"></i></button></div></div><button id="open-variation-generator-btn" class="mt-6 w-full bg-purple-100 text-purple-700 font-semibold px-4 py-2 rounded-lg hover:bg-purple-200 flex items-center justify-center gap-2"><i class="fas fa-wand-magic-sparkles"></i><span>Buat Variasi Baru</span></button></div>`;
@@ -186,18 +193,19 @@ const renderPromptDetail = (prompt) => {
     });
     showPage('page-prompt-detail');
 };
-
 const renderVariationHistory = (variations) => {
     variationHistoryList.innerHTML = '';
-    if (variations.length === 0) variationHistoryList.innerHTML = `<div class="text-center p-6 bg-white rounded-lg shadow text-gray-500 text-sm">Belum ada variasi yang disimpan.</div>`;
-    variations.forEach(v => {
+    if (!variations || variations.length === 0) {
+        variationHistoryList.innerHTML = `<div class="text-center p-6 bg-white rounded-lg shadow text-gray-500 text-sm">Belum ada variasi yang disimpan.</div>`;
+        return;
+    }
+    variations.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).forEach(v => {
         const item = document.createElement('div');
         item.className = 'bg-white rounded-lg shadow p-4';
         item.innerHTML = `<p class="text-sm text-gray-700 whitespace-pre-wrap">${v.promptText}</p><div class="flex justify-end items-center gap-4 mt-3 pt-3 border-t"><button data-text="${v.promptText}" class="copy-variation-btn text-sm text-indigo-600 font-semibold hover:text-indigo-800">Salin</button><button data-id="${v.id}" class="delete-variation-btn text-sm text-red-600 font-semibold hover:text-red-800">Hapus</button></div>`;
         variationHistoryList.appendChild(item);
     });
 };
-
 const renderHistory = () => {
     historyList.innerHTML = '';
     if (importHistory.length === 0) historyList.innerHTML = `<div class="text-center p-10 text-gray-500">Belum ada riwayat impor.</div>`;
@@ -219,15 +227,20 @@ const setupListeners = () => {
     if (unsubscribePrompts) unsubscribePrompts();
     unsubscribePrompts = onSnapshot(query(collection(db, promptsPath)), (snapshot) => {
         allPrompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        if (document.getElementById('page-categories').classList.contains('active')) renderCategories();
+        if (appContainer.classList.contains('hidden')) return;
+        renderCategories();
+    }, (error) => {
+        console.error("Error listening to prompts:", error);
     });
+
     const historyPath = `artifacts/${appId}/users/${userId}/importHistory`;
     if (unsubscribeHistory) unsubscribeHistory();
     unsubscribeHistory = onSnapshot(query(collection(db, historyPath)), (snapshot) => {
         importHistory = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    }, (error) => {
+        console.error("Error listening to history:", error);
     });
 };
-
 const handleSavePrompt = async (e) => {
     e.preventDefault();
     if (!userId) return;
@@ -235,29 +248,43 @@ const handleSavePrompt = async (e) => {
     const id = document.getElementById('promptId').value;
     const collectionPath = `artifacts/${appId}/users/${userId}/prompts`;
     try {
-        if (id) await setDoc(doc(db, collectionPath, id), promptData);
-        else await addDoc(collection(db, collectionPath), promptData);
+        if (id) {
+            await setDoc(doc(db, collectionPath, id), promptData, { merge: true });
+        } else {
+            await addDoc(collection(db, collectionPath), promptData);
+        }
         closeModal(modal);
     } catch (error) { console.error("Error saving prompt:", error); }
 };
-
+async function deleteCollection(collectionPath) {
+    const collectionRef = collection(db, collectionPath);
+    const q = query(collectionRef);
+    const snapshot = await getDocs(q);
+    const batch = writeBatch(db);
+    snapshot.docs.forEach((doc) => {
+        batch.delete(doc.ref);
+    });
+    await batch.commit();
+}
 const handleDeletePrompt = async (id, category) => {
     if (!userId) return;
     showConfirmation('Apakah Anda yakin ingin menghapus prompt utama ini beserta semua variasinya?', async () => {
          try {
+            const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${id}/variations`;
+            await deleteCollection(variationsPath);
             await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/prompts`, id));
-            showPage('page-prompts');
-            renderPrompts(allPrompts.filter(p => p.kategori === category), `Kategori: ${category}`);
-        } catch (error) { console.error("Error deleting prompt:", error); }
+            showPage('page-categories');
+        } catch (error) { 
+            console.error("Error deleting prompt and its variations:", error); 
+            alert("Gagal menghapus prompt. Silakan coba lagi.");
+        }
     });
 };
-
 const handleDeleteVariation = async (variationId) => {
     if (!userId || !currentPromptId) return;
     const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
     try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
 };
-
 const handleDeleteHistory = (importId) => {
     if (!userId || !importId) return;
     showConfirmation('Anda yakin ingin menghapus semua prompt dari sesi impor ini?', async () => {
@@ -272,7 +299,7 @@ const handleDeleteHistory = (importId) => {
     });
 };
 
-// --- Logika CSV & Ekspor ---
+// --- Logika CSV & Ekspor (Tidak berubah) ---
 function parseRobustCSV(csvText) {
     const rows = []; let fields = []; let currentField = ''; let inQuotes = false;
     const text = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -354,7 +381,6 @@ categoryGrid.addEventListener('click', (e) => {
     const card = e.target.closest('.category-card');
     if (card) renderPrompts(allPrompts.filter(p => p.kategori === card.dataset.category), `Kategori: ${card.dataset.category}`);
 });
-
 promptList.addEventListener('click', (e) => {
     const item = e.target.closest('.prompt-item');
     if (item) {
@@ -362,7 +388,6 @@ promptList.addEventListener('click', (e) => {
         if(prompt) renderPromptDetail(prompt);
     }
 });
-
 promptDetailContent.addEventListener('click', e => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
@@ -379,33 +404,41 @@ promptDetailContent.addEventListener('click', e => {
     } else if (e.target.closest('#open-variation-generator-btn')) {
         originalPromptText.textContent = prompt.promptText;
         variationResultsContainer.innerHTML = '';
+        manualVariationInput.value = '';
         poseVariationSelect.value = '';
         clothingVariationSelect.value = '';
-        manualVariationInput.value = '';
+        expressionVariationSelect.value = '';
+        hairstyleVariationSelect.value = '';
+        backgroundVariationSelect.value = '';
+        cameraAngleVariationSelect.value = '';
         openModal(variationModal);
     }
 });
-
 variationHistoryList.addEventListener('click', e => {
     if(e.target.closest('.copy-variation-btn')) copyToClipboard(e.target.closest('.copy-variation-btn').dataset.text, e.target);
     else if (e.target.closest('.delete-variation-btn')) showConfirmation("Hapus variasi ini?", () => handleDeleteVariation(e.target.closest('.delete-variation-btn').dataset.id));
 });
-
 generateVariationBtn.addEventListener('click', async () => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
     let instruction = manualVariationInput.value.trim();
     if (!instruction) {
-        const pose = poseVariationSelect.value;
-        const clothing = clothingVariationSelect.value;
-        if (pose) instruction = pose;
-        else if (clothing) instruction = clothing;
+        const variations = [];
+        if (poseVariationSelect.value) variations.push(poseVariationSelect.value);
+        if (clothingVariationSelect.value) variations.push(clothingVariationSelect.value);
+        if (expressionVariationSelect.value) variations.push(expressionVariationSelect.value);
+        if (hairstyleVariationSelect.value) variations.push(hairstyleVariationSelect.value);
+        if (backgroundVariationSelect.value) variations.push(backgroundVariationSelect.value);
+        if (cameraAngleVariationSelect.value) variations.push(cameraAngleVariationSelect.value);
+        instruction = variations.join(', ');
     }
-    if (!instruction) { alert("Silakan pilih variasi terarah atau tulis perubahan manual."); return; }
+    if (!instruction) { alert("Silakan pilih setidaknya satu variasi terarah atau tulis perubahan manual."); return; }
     variationSpinner.classList.remove('hidden');
     generateVariationBtn.disabled = true;
     variationResultsContainer.innerHTML = `<div class="flex justify-center items-center p-4"><div class="spinner"></div><p class="ml-3 text-sm text-gray-500">Membuat variasi...</p></div>`;
-    const result = await callGemini(prompt.promptText, { type: "OBJECT", properties: { "variations": { "type": "ARRAY", "items": { "type": "STRING" } } } });
+    const geminiPrompt = `Based on the original prompt: "${prompt.promptText}", generate 3 new variations with the following instruction: "${instruction}".`;
+    const schema = { type: "OBJECT", properties: { "variations": { "type": "ARRAY", "items": { "type": "STRING" } } } };
+    const result = await callGemini(geminiPrompt, schema);
     variationResultsContainer.innerHTML = '';
     variationSpinner.classList.add('hidden');
     generateVariationBtn.disabled = false;
@@ -420,19 +453,27 @@ generateVariationBtn.addEventListener('click', async () => {
         variationResultsContainer.innerHTML = `<p class="text-red-500 text-sm p-4">Gagal membuat variasi. Silakan coba lagi.</p>`;
     }
 });
-
 variationResultsContainer.addEventListener('click', async e => {
     const text = e.target.dataset.text;
     if (!text) return;
-    if (e.target.matches('.copy-new-variation-btn')) copyToClipboard(text, e.target);
-    else if (e.target.matches('.save-new-variation-btn')) {
-        e.target.textContent = 'Menyimpan...';
-        e.target.disabled = true;
-        const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
-        await addDoc(collection(db, path), { promptText: text, createdAt: serverTimestamp() });
+    if (e.target.matches('.copy-new-variation-btn')) {
+        copyToClipboard(text, e.target);
+    } else if (e.target.matches('.save-new-variation-btn')) {
+        const button = e.target;
+        button.textContent = 'Menyimpan...';
+        button.disabled = true;
+        try {
+            const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
+            await addDoc(collection(db, path), { promptText: text, createdAt: serverTimestamp() });
+            button.closest('.variation-suggestion').remove();
+        } catch (error) {
+            console.error("Gagal menyimpan variasi ke Firestore:", error);
+            alert("Gagal menyimpan variasi. Periksa koneksi internet Anda dan coba lagi.");
+            button.textContent = 'Simpan ke Riwayat';
+            button.disabled = false;
+        }
     }
 });
-
 suggestMetadataBtn.addEventListener('click', async () => {
     const promptText = document.getElementById('promptText').value;
     if (!promptText) { alert("Mohon isi Prompt Teks terlebih dahulu."); return; }
@@ -450,7 +491,6 @@ suggestMetadataBtn.addEventListener('click', async () => {
     metadataSpinner.classList.add('hidden');
     suggestMetadataBtn.disabled = false;
 });
-
 globalSearchInput.addEventListener('input', (e) => {
     const searchTerm = e.target.value.toLowerCase();
     if (searchTerm.length < 3) {
@@ -460,17 +500,15 @@ globalSearchInput.addEventListener('input', (e) => {
     const results = allPrompts.filter(p => p.judul.toLowerCase().includes(searchTerm) || p.promptText.toLowerCase().includes(searchTerm));
     renderPrompts(results, `Hasil Pencarian untuk: "${searchTerm}"`);
 });
-
 historyList.addEventListener('click', (e) => {
     const deleteBtn = e.target.closest('.delete-history-btn');
     if (deleteBtn) handleDeleteHistory(deleteBtn.dataset.importId);
 });
-
 backToCategoriesBtn.addEventListener('click', () => showPage('page-categories'));
 backToPromptsBtn.addEventListener('click', () => renderPrompts(allPrompts.filter(p => p.kategori === currentCategory), `Kategori: ${currentCategory}`));
 backToCategoriesBtnFromHistory.addEventListener('click', () => showPage('page-categories'));
 historyBtn.addEventListener('click', () => renderHistory());
-addPromptBtn.addEventListener('click', () => { promptForm.reset(); modalTitle.innerText = "Tambah Prompt Baru"; openModal(modal); });
+addPromptBtn.addEventListener('click', () => { promptForm.reset(); document.getElementById('promptId').value = ''; modalTitle.innerText = "Tambah Prompt Baru"; openModal(modal); });
 importCsvBtn.addEventListener('click', () => csvFileInput.click());
 exportBtn.addEventListener('click', handleExport);
 csvFileInput.addEventListener('change', handleCsvImport);
@@ -482,7 +520,6 @@ variationModal.addEventListener('click', (e) => { if (e.target === variationModa
 promptForm.addEventListener('submit', handleSavePrompt);
 alertCancelBtn.addEventListener('click', () => closeModal(alertModal));
 alertConfirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(alertModal); });
-
 settingsBtn.addEventListener('click', () => {
     apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
     openModal(settingsModal);
@@ -499,18 +536,73 @@ saveApiKeyBtn.addEventListener('click', () => {
     }
 });
 
-// --- Listener Autentikasi ---
-onAuthStateChanged(auth, async (user) => {
+// --- Logika Autentikasi ---
+
+// Fungsi untuk menangani login dengan Google
+const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+        await signInWithPopup(auth, provider);
+        // onAuthStateChanged akan menangani sisanya
+    } catch (error) {
+        console.error("Google sign-in error:", error);
+        alert("Gagal masuk dengan Google. Silakan coba lagi.");
+    }
+};
+
+// Fungsi untuk menangani logout
+const handleLogout = async () => {
+    try {
+        await signOut(auth);
+        // onAuthStateChanged akan menangani sisanya
+    } catch (error) {
+        console.error("Sign-out error:", error);
+    }
+};
+
+// Tambahkan event listener ke tombol login dan logout
+loginBtn.addEventListener('click', handleGoogleLogin);
+logoutBtn.addEventListener('click', handleLogout);
+
+// Listener utama untuk status autentikasi
+onAuthStateChanged(auth, (user) => {
     if (user) {
+        // --- Pengguna berhasil login ---
         userId = user.uid;
-        userInfo.textContent = `User ID: ${userId}`;
+
+        // Tampilkan konten aplikasi, sembunyikan halaman login
+        appContainer.classList.remove('hidden');
+        loginPage.classList.remove('active');
+        loginPage.classList.add('hidden');
+        
+        // Tampilkan informasi pengguna
+        userInfo.innerHTML = `
+            <img src="${user.photoURL}" alt="Foto Profil" class="profile-picture">
+            <span class="font-semibold text-gray-700">${user.displayName}</span>
+        `;
+        
+        // Mulai mendengarkan data dari Firestore
         setupListeners();
         showPage('page-categories');
+
     } else {
-        try {
-            const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
-            if (token) await signInWithCustomToken(auth, token);
-            else await signInAnonymously(auth);
-        } catch (error) { console.error("Auth failed:", error); }
+        // --- Pengguna logout atau belum login ---
+        userId = null;
+        
+        // Tampilkan halaman login, sembunyikan konten aplikasi
+        appContainer.classList.add('hidden');
+        loginPage.classList.remove('hidden');
+        loginPage.classList.add('active');
+
+        // Hentikan semua listener Firestore untuk mencegah error
+        if (unsubscribePrompts) unsubscribePrompts();
+        if (unsubscribeHistory) unsubscribeHistory();
+        if (unsubscribeVariations) unsubscribeVariations();
+
+        // Kosongkan data lokal
+        allPrompts = [];
+        importHistory = [];
+        categoryGrid.innerHTML = '';
+        emptyStateCategories.classList.remove('hidden');
     }
 });
