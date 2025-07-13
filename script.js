@@ -94,7 +94,7 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 
 
-// --- Fungsi Panggilan API Gemini ---
+// --- Fungsi Panggilan API Gemini (Tidak berubah) ---
 async function callGemini(prompt, schema) {
     const apiKey = localStorage.getItem('geminiApiKey');
     if (!apiKey) {
@@ -477,6 +477,7 @@ variationHistoryList.addEventListener('click', e => {
         });
     }
 });
+// ### PERBAIKAN ###: Logika variasi sekarang menggunakan prompt yang lebih terstruktur
 generateVariationBtn.addEventListener('click', async () => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
@@ -498,19 +499,26 @@ generateVariationBtn.addEventListener('click', async () => {
     variationResultsContainer.innerHTML = `<div class="flex justify-center items-center p-4"><div class="spinner"></div><p class="ml-3 text-sm text-gray-500">Membuat variasi...</p></div>`;
     
     const geminiPrompt = `
-You are a precise prompt engineering assistant. Your task is to modify an existing prompt based *only* on the specific instructions provided. You must preserve the original structure, style, and all other details of the prompt as closely as possible. Do not add or change anything that is not in the instructions.
+You are a world-class, expert prompt engineer for photorealistic image generation. Your task is to creatively and intelligently rewrite a base prompt into three distinct, high-quality variations based on a set of modification instructions.
 
-Original Prompt:
+Follow these rules STRICTLY:
+1.  **Integrate, Don't Append:** You must integrate the instructions seamlessly into the prompt. DO NOT simply append the instructions at the end.
+2.  **Maintain Language:** The output language MUST match the language of the original prompt. If the original is in English, all variations must be in English.
+3.  **Preserve Core Elements:** Preserve the core subject, style, and parameters (like --ar 9:16) of the original prompt unless the instructions explicitly ask to change them.
+4.  **No Rendering Terms for Realism:** For prompts with a realistic or photographic style, you are STRICTLY FORBIDDEN from using words like 'render', 'rendering', '3D', 'OC rendering', 'unreal engine', etc. If the original prompt contains these words, you must REMOVE them or REPLACE them with more suitable photographic terms.
+5.  **Create Distinct Variations:** Each of the three variations should be unique and explore a different creative aspect of the instructions.
+
+BASE PROMPT:
 """
 ${prompt.promptText}
 """
 
-Modification Instructions:
+MODIFICATION INSTRUCTIONS:
 """
 Apply the following changes: ${instruction}
 """
 
-Now, generate 3 new prompts based on these rules.
+Now, generate the three variations.
 `;
 
     const schema = { type: "OBJECT", properties: { "variations": { "type": "ARRAY", "items": { "type": "STRING" } } } };
