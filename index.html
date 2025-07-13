@@ -7,88 +7,119 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <!-- Menghubungkan ke file CSS eksternal -->
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="text-gray-800">
 
-    <!-- Header -->
-    <header class="bg-white shadow-sm sticky top-0 z-20">
-        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
-            <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
-                <div class="flex items-center gap-3">
-                    <i class="fas fa-rocket text-2xl text-indigo-600"></i>
-                    <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Manajemen Prompt Imajinasi Lokal</h1>
-                </div>
-                 <div class="relative w-full sm:w-64">
-                    <input type="text" id="globalSearchInput" placeholder="Cari di semua prompt..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
-                    <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
-                </div>
-                <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3">
-                    <button id="settingsBtn" class="w-full sm:w-auto bg-gray-400 text-white font-semibold p-2 rounded-lg hover:bg-gray-500 transition-colors flex items-center justify-center">
-                        <i class="fas fa-cog"></i>
-                    </button>
-                    <button id="exportBtn" class="w-full sm:w-auto bg-blue-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors flex items-center justify-center gap-2">
-                        <i class="fas fa-file-export"></i>
-                        <span>Ekspor</span>
-                    </button>
-                    <button id="historyBtn" class="w-full sm:w-auto bg-gray-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-gray-700 transition-colors flex items-center justify-center gap-2">
-                        <i class="fas fa-history"></i>
-                        <span>Riwayat</span>
-                    </button>
-                    <input type="file" id="csvFileInput" class="hidden" accept=".csv">
-                    <button id="importCsvBtn" class="w-full sm:w-auto bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
-                        <i class="fas fa-file-csv"></i>
-                        <span>Impor</span>
-                    </button>
-                    <button id="addPromptBtn" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
-                        <i class="fas fa-plus"></i>
-                        <span>Baru</span>
+    <!-- Halaman Login (Akan tampil pertama kali) -->
+    <div id="page-login" class="page active">
+        <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
+            <div class="max-w-md w-full text-center">
+                <i class="fas fa-rocket text-6xl text-indigo-600"></i>
+                <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mt-6">Manajemen Prompt Imajinasi Lokal</h1>
+                <p class="text-gray-600 mt-2">Simpan dan kelola semua prompt AI Anda di satu tempat, dari mana saja.</p>
+                <div class="mt-8">
+                    <button id="loginBtn" class="w-full bg-white border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-3 shadow-sm">
+                        <img src="https://www.google.com/favicon.ico" alt="Ikon Google" class="w-6 h-6">
+                        <span>Masuk dengan Google</span>
                     </button>
                 </div>
             </div>
-             <div id="userInfo" class="text-xs text-gray-500 mt-2 text-center sm:text-left"></div>
         </div>
-    </header>
+    </div>
 
-    <!-- Main Content -->
-    <main class="container mx-auto p-4 sm:p-6 lg:p-8">
-        <!-- Halaman Kategori -->
-        <div id="page-categories" class="page active">
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Daftar Kategori</h2>
-            <div id="category-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
-            <div id="empty-state-categories" class="text-center py-20 bg-white rounded-lg shadow hidden">
-                <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
-                <h2 class="text-2xl font-semibold text-gray-700">Belum Ada Kategori</h2>
-                <p class="text-gray-500 mt-2">Klik "Tambah Baru" atau "Impor" untuk memulai.</p>
+    <!-- Konten Aplikasi Utama (Disembunyikan sebelum login) -->
+    <div id="app-container" class="hidden">
+        <!-- Header -->
+        <header class="bg-white shadow-sm sticky top-0 z-20">
+            <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
+                    <div class="flex items-center gap-3">
+                        <i class="fas fa-rocket text-2xl text-indigo-600"></i>
+                        <h1 class="text-xl sm:text-2xl font-bold text-gray-800">Manajemen Prompt</h1>
+                    </div>
+                    <div class="relative w-full sm:w-64">
+                        <input type="text" id="globalSearchInput" placeholder="Cari di semua prompt..." class="w-full pl-10 pr-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                        <i class="fas fa-search absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"></i>
+                    </div>
+                    <div class="w-full sm:w-auto flex flex-col sm:flex-row items-center gap-3">
+                        <button id="addPromptBtn" class="w-full sm:w-auto bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-plus"></i>
+                            <span>Baru</span>
+                        </button>
+                        <button id="importCsvBtn" class="w-full sm:w-auto bg-green-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center gap-2">
+                            <i class="fas fa-file-csv"></i>
+                            <span>Impor</span>
+                        </button>
+                    </div>
+                </div>
+                <!-- Info Pengguna & Tombol Lainnya -->
+                <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 pt-3 border-t">
+                     <div id="userInfo" class="flex items-center gap-3">
+                        <!-- Info pengguna akan diisi oleh JavaScript -->
+                    </div>
+                    <div class="flex items-center gap-3">
+                         <button id="exportBtn" class="text-sm text-gray-600 hover:text-indigo-600 font-medium flex items-center gap-2">
+                            <i class="fas fa-file-export"></i>
+                            <span>Ekspor</span>
+                        </button>
+                        <button id="historyBtn" class="text-sm text-gray-600 hover:text-indigo-600 font-medium flex items-center gap-2">
+                            <i class="fas fa-history"></i>
+                            <span>Riwayat Impor</span>
+                        </button>
+                        <button id="settingsBtn" class="text-sm text-gray-600 hover:text-indigo-600 font-medium flex items-center gap-2">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <button id="logoutBtn" class="text-sm text-red-500 hover:text-red-700 font-medium flex items-center gap-2">
+                            <i class="fas fa-sign-out-alt"></i>
+                            <span>Keluar</span>
+                        </button>
+                    </div>
+                </div>
             </div>
-        </div>
+        </header>
 
-        <!-- Halaman Daftar Prompt (termasuk hasil pencarian) -->
-        <div id="page-prompts" class="page">
-            <div class="flex items-center mb-6"><button id="backToCategoriesBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
-            <h2 id="prompt-list-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
-            <div id="prompt-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
-        </div>
-        
-        <!-- Halaman Detail Prompt & Riwayat Variasi -->
-        <div id="page-prompt-detail" class="page">
-             <div class="flex items-center mb-6"><button id="backToPromptsBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Daftar Prompt</span></button></div>
-             <div id="prompt-detail-content"></div>
-             <div class="mt-8">
-                <h3 class="text-xl font-bold text-gray-800 mb-4">Riwayat Variasi</h3>
-                <div id="variation-history-list" class="space-y-3"></div>
-             </div>
-        </div>
+        <!-- Main Content -->
+        <main class="container mx-auto p-4 sm:p-6 lg:p-8">
+            <!-- Halaman Kategori -->
+            <div id="page-categories" class="page">
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Daftar Kategori</h2>
+                <div id="category-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
+                <div id="empty-state-categories" class="text-center py-20 bg-white rounded-lg shadow hidden">
+                    <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
+                    <h2 class="text-2xl font-semibold text-gray-700">Belum Ada Kategori</h2>
+                    <p class="text-gray-500 mt-2">Klik "Tambah Baru" atau "Impor" untuk memulai.</p>
+                </div>
+            </div>
 
-        <!-- Halaman Riwayat Impor -->
-        <div id="page-history" class="page">
-             <div class="flex items-center mb-6"><button id="backToCategoriesBtnFromHistory" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
-            <h2 class="text-2xl font-bold text-gray-800 mb-6">Riwayat Impor</h2>
-            <div id="history-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
-        </div>
-    </main>
+            <!-- Halaman Daftar Prompt -->
+            <div id="page-prompts" class="page">
+                <div class="flex items-center mb-6"><button id="backToCategoriesBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
+                <h2 id="prompt-list-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
+                <div id="prompt-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
+            </div>
+            
+            <!-- Halaman Detail Prompt -->
+            <div id="page-prompt-detail" class="page">
+                 <div class="flex items-center mb-6"><button id="backToPromptsBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Daftar Prompt</span></button></div>
+                 <div id="prompt-detail-content"></div>
+                 <div class="mt-8">
+                    <h3 class="text-xl font-bold text-gray-800 mb-4">Riwayat Variasi</h3>
+                    <div id="variation-history-list" class="space-y-3"></div>
+                 </div>
+            </div>
+
+            <!-- Halaman Riwayat Impor -->
+            <div id="page-history" class="page">
+                 <div class="flex items-center mb-6"><button id="backToCategoriesBtnFromHistory" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
+                <h2 class="text-2xl font-bold text-gray-800 mb-6">Riwayat Impor</h2>
+                <div id="history-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
+            </div>
+        </main>
+    </div>
     
+    <!-- Semua Modal Tetap Sama -->
+    <input type="file" id="csvFileInput" class="hidden" accept=".csv">
     <!-- Modal Tambah/Edit -->
     <div id="promptModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl my-8">
@@ -99,41 +130,14 @@
             </form>
         </div>
     </div>
-
     <!-- Modal Variasi Gemini -->
     <div id="variationModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-3xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label><p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p></div><div class="space-y-4 pt-2"><label class="block text-sm font-medium text-gray-900">Pilih Variasi Terarah</label><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label for="pose-variation" class="block text-xs font-medium text-gray-600">Pose</label><select id="pose-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="Pose berani dan percaya diri">Pose Berani</option><option value="Pose menggoda yang elegan">Pose Menggoda</option><option value="Pose manja dan imut">Pose Manja</option><option value="Pose sensual yang artistik dan halus">Pose Sensual Halus</option></select></div><div><label for="clothing-variation" class="block text-xs font-medium text-gray-600">Pakaian</label><select id="clothing-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="Pakaian yang lebih berani dan terbuka, namun tetap artistik">Pakaian Berani</option><option value="Pakaian yang lebih terbuka secara elegan">Pakaian Terbuka Elegan</option><option value="Pakaian sensual yang halus dan tidak vulgar">Pakaian Sensual Halus</option></select></div></div><div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual</label><textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: ubah latar menjadi hutan berkabut, tambahkan senyum tipis di wajahnya..."></textarea></div><button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">Buat Variasi<div id="variation-spinner" class="spinner hidden"></div></button></div><div id="variation-results-container" class="space-y-3 pt-4"></div></div>
-            <div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg">
-                <button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button>
-            </div>
-        </div></div>
-    </div>
-
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label><p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p></div><div class="space-y-4 pt-2"><label class="block text-sm font-medium text-gray-900">Pilih Variasi Terarah</label><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"><div><label for="pose-variation" class="block text-xs font-medium text-gray-600">Pose</label><select id="pose-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="dalam pose berani dan percaya diri">Pose Berani</option><option value="dalam pose menggoda yang elegan">Pose Menggoda</option><option value="dalam pose manja dan imut">Pose Manja</option><option value="dalam pose sensual yang artistik dan halus">Pose Sensual Halus</option></select></div><div><label for="clothing-variation" class="block text-xs font-medium text-gray-600">Pakaian</label><select id="clothing-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="mengenakan pakaian yang lebih berani dan terbuka, namun tetap artistik">Pakaian Berani</option><option value="mengenakan pakaian yang lebih terbuka secara elegan">Pakaian Terbuka Elegan</option><option value="mengenakan pakaian sensual yang halus dan tidak vulgar">Pakaian Sensual Halus</option></select></div><div><label for="expression-variation" class="block text-xs font-medium text-gray-600">Ekspresi Wajah</label><select id="expression-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="dengan ekspresi wajah tersenyum bahagia">Tersenyum Bahagia</option><option value="dengan ekspresi wajah sedih">Sedih</option><option value="dengan ekspresi wajah misterius">Misterius</option><option value="dengan ekspresi wajah fierce atau garang">Fierce / Garang</option></select></div><div><label for="hairstyle-variation" class="block text-xs font-medium text-gray-600">Gaya Rambut</label><select id="hairstyle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="dengan rambut panjang terurai">Panjang Terurai</option><option value="dengan rambut dikuncir kuda (ponytail)">Kuncir Kuda</option><option value="dengan rambut pendek model bob">Rambut Bob</option><option value="dengan rambut berwarna cerah (misal: biru atau pink)">Warna Cerah</option></select></div><div><label for="background-variation" class="block text-xs font-medium text-gray-600">Latar / Background</label><select id="background-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="berlatar pemandangan kota di malam hari dengan lampu neon">Kota Malam Hari</option><option value="berlatar hutan tropis yang rimbun">Hutan Tropis</option><option value="berlatar pantai saat matahari terbenam">Pantai Senja</option><option value="berlatar interior kafe yang nyaman">Interior Kafe</option></select></div><div><label for="camera-angle-variation" class="block text-xs font-medium text-gray-600">Sudut Pandang Kamera</label><select id="camera-angle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="diambil dari sudut pandang close-up">Close-up</option><option value="diambil dari sudut pandang full-body shot">Full Body</option><option value="diambil dari sudut pandang dari atas (high-angle shot)">Dari Atas</option><option value="diambil dari sudut pandang dari bawah (low-angle shot)">Dari Bawah</option></select></div></div><div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual</label><textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: ubah latar menjadi hutan berkabut, tambahkan senyum tipis di wajahnya..."></textarea></div><button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">Buat Variasi<div id="variation-spinner" class="spinner hidden"></div></button></div><div id="variation-results-container" class="space-y-3 pt-4"></div></div><div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg"><button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button></div></div></div>
     <!-- Modal Pengaturan API -->
-    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8">
-            <div class="p-6">
-                <div class="flex justify-between items-center mb-4 pb-4 border-b">
-                    <h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-cog text-gray-600"></i>Pengaturan</h2>
-                    <button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
-                </div>
-                <div class="space-y-4">
-                    <div>
-                        <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Kunci API Gemini</label>
-                        <p class="text-xs text-gray-500 mb-2">Kunci API Anda disimpan dengan aman di peramban (browser) Anda dan tidak akan dibagikan.</p>
-                        <input type="password" id="apiKeyInput" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Masukkan kunci API Anda di sini...">
-                    </div>
-                </div>
-                <div class="mt-8 flex justify-end gap-4">
-                    <button type="button" id="saveApiKeyBtn" class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700">Simpan</button>
-                </div>
-            </div>
-        </div>
-    </div>
-
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-cog text-gray-600"></i>Pengaturan</h2><button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Kunci API Gemini</label><p class="text-xs text-gray-500 mb-2">Kunci API Anda disimpan dengan aman di peramban (browser) Anda dan tidak akan dibagikan.</p><input type="password" id="apiKeyInput" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Masukkan kunci API Anda di sini..."></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="saveApiKeyBtn" class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div></div></div></div>
+    <!-- Modal Konfirmasi -->
     <div id="alertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><p id="alertMessage" class="text-gray-800 mb-6"></p><div id="alert-buttons" class="flex justify-center gap-4"><button id="alertConfirmBtn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Ya, Hapus</button><button id="alertCancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Batal</button></div></div></div>
 
-    <!-- Menghubungkan ke file JavaScript eksternal -->
     <script type="module" src="script.js"></script>
 </body>
 </html>
