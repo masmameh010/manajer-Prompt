@@ -131,18 +131,41 @@ const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.i
 const openModal = (modalElement) => modalElement.classList.remove('hidden');
 const closeModal = (modalElement) => modalElement.classList.add('hidden');
 
-let confirmCallback = null;
-const showConfirmation = (message, callback) => { 
-    if (!alertModal || !alertMessage) {
+// ### PERBAIKAN ###: Fungsi konfirmasi sekarang lebih andal dan tidak meninggalkan "hantu"
+const showConfirmation = (message, onConfirm) => {
+    if (!alertModal || !alertMessage || !alertConfirmBtn || !alertCancelBtn) {
         console.error("Elemen modal konfirmasi tidak ditemukan!");
         if (confirm(message)) {
-            callback();
+            onConfirm();
         }
         return;
     }
-    alertMessage.textContent = message; 
-    confirmCallback = callback; 
-    openModal(alertModal); 
+
+    alertMessage.textContent = message;
+
+    const handleConfirm = () => {
+        onConfirm();
+        cleanup();
+    };
+
+    const handleCancel = () => {
+        cleanup();
+    };
+
+    const cleanup = () => {
+        closeModal(alertModal);
+        alertConfirmBtn.removeEventListener('click', handleConfirm);
+        alertCancelBtn.removeEventListener('click', handleCancel);
+    };
+
+    // Hapus listener lama sebelum menambahkan yang baru untuk mencegah duplikasi
+    alertConfirmBtn.removeEventListener('click', handleConfirm);
+    alertCancelBtn.removeEventListener('click', handleCancel);
+
+    alertConfirmBtn.addEventListener('click', handleConfirm);
+    alertCancelBtn.addEventListener('click', handleCancel);
+
+    openModal(alertModal);
 };
 function copyToClipboard(text, element) {
     const textarea = document.createElement('textarea');
@@ -331,20 +354,20 @@ const handleDeleteHistory = (importId) => {
 
             console.log(`Ditemukan ${promptsSnapshot.docs.length} prompt untuk dihapus.`);
 
-            // Kumpulkan semua promise untuk penghapusan subkoleksi
-            const deleteSubcollectionsPromises = promptsSnapshot.docs.map(async (promptDoc) => {
+            // Loop melalui setiap prompt untuk menemukan variasinya
+            for (const promptDoc of promptsSnapshot.docs) {
+                // Pertama, temukan semua variasi untuk prompt ini
                 const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${promptDoc.id}/variations`;
-                const variationsQuery = query(collection(db, variationsPath));
-                const variationsSnapshot = await getDocs(variationsQuery);
+                const variationsSnapshot = await getDocs(collection(db, variationsPath));
+                
+                // Tambahkan setiap variasi ke batch untuk dihapus
                 variationsSnapshot.forEach(variationDoc => {
                     batch.delete(variationDoc.ref);
                 });
-                // Tambahkan prompt utama ke batch setelah subkoleksinya ditambahkan
-                batch.delete(promptDoc.ref);
-            });
 
-            // Tunggu semua proses pengumpulan referensi subkoleksi selesai
-            await Promise.all(deleteSubcollectionsPromises);
+                // Tambahkan prompt utama ke batch untuk dihapus
+                batch.delete(promptDoc.ref);
+            }
             
             // Tambahkan dokumen riwayat itu sendiri ke batch
             const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
@@ -352,6 +375,7 @@ const handleDeleteHistory = (importId) => {
 
             // Jalankan satu batch besar untuk semua penghapusan
             await batch.commit();
+            
             alert("Sesi impor dan semua prompt terkait berhasil dihapus.");
             console.log("Proses hapus selesai.");
 
