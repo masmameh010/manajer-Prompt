@@ -82,16 +82,17 @@ const variationSpinner = document.getElementById('variation-spinner');
 const variationResultsContainer = document.getElementById('variation-results-container');
 const suggestMetadataBtn = document.getElementById('suggestMetadataBtn');
 const metadataSpinner = document.getElementById('metadata-spinner');
-const poseVariationSelect = document.getElementById('pose-variation');
-const clothingVariationSelect = document.getElementById('clothing-variation');
-const expressionVariationSelect = document.getElementById('expression-variation');
-const hairstyleVariationSelect = document.getElementById('hairstyle-variation');
-const backgroundVariationSelect = document.getElementById('background-variation');
-const cameraAngleVariationSelect = document.getElementById('camera-angle-variation');
 const settingsModal = document.getElementById('settingsModal');
 const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+
+const styleVariationSelect = document.getElementById('style-variation');
+const clothingStyleVariationSelect = document.getElementById('clothing-style-variation');
+const clothingCoverageVariationSelect = document.getElementById('clothing-coverage-variation');
+const hijabVariationSelect = document.getElementById('hijab-variation');
+const backgroundVariationSelect = document.getElementById('background-variation');
+const cameraAngleVariationSelect = document.getElementById('camera-angle-variation');
 
 
 // --- Fungsi Panggilan API Gemini (Tidak berubah) ---
@@ -318,29 +319,49 @@ const handleDeleteVariation = async (variationId) => {
     const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
     try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
 };
+// ### PERBAIKAN ###: Fungsi hapus riwayat impor sekarang jauh lebih cepat dan andal
 const handleDeleteHistory = (importId) => {
     if (!userId || !importId) return;
     showConfirmation('Anda yakin ingin menghapus semua prompt dari sesi impor ini?', async () => {
-        const promptsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/prompts`), where("importId", "==", importId));
-        const promptsSnapshot = await getDocs(promptsQuery);
-        const batch = writeBatch(db);
-        for (const promptDoc of promptsSnapshot.docs) {
-            const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${promptDoc.id}/variations`;
-            await deleteCollection(variationsPath);
-            batch.delete(promptDoc.ref);
-        }
-        const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
-        batch.delete(historyDocRef);
-        try { 
-            await batch.commit(); 
-            alert("Sesi impor berhasil dihapus."); 
-        } 
-        catch (error) { 
-            console.error("Error deleting import session:", error); 
-            alert("Gagal menghapus sesi impor."); 
+        console.log(`Mulai proses hapus untuk importId: ${importId}`);
+        try {
+            const batch = writeBatch(db);
+            const promptsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/prompts`), where("importId", "==", importId));
+            const promptsSnapshot = await getDocs(promptsQuery);
+
+            console.log(`Ditemukan ${promptsSnapshot.docs.length} prompt untuk dihapus.`);
+
+            // Kumpulkan semua promise untuk penghapusan subkoleksi
+            const deleteSubcollectionsPromises = promptsSnapshot.docs.map(async (promptDoc) => {
+                const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${promptDoc.id}/variations`;
+                const variationsQuery = query(collection(db, variationsPath));
+                const variationsSnapshot = await getDocs(variationsQuery);
+                variationsSnapshot.forEach(variationDoc => {
+                    batch.delete(variationDoc.ref);
+                });
+                // Tambahkan prompt utama ke batch setelah subkoleksinya ditambahkan
+                batch.delete(promptDoc.ref);
+            });
+
+            // Tunggu semua proses pengumpulan referensi subkoleksi selesai
+            await Promise.all(deleteSubcollectionsPromises);
+            
+            // Tambahkan dokumen riwayat itu sendiri ke batch
+            const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
+            batch.delete(historyDocRef);
+
+            // Jalankan satu batch besar untuk semua penghapusan
+            await batch.commit();
+            alert("Sesi impor dan semua prompt terkait berhasil dihapus.");
+            console.log("Proses hapus selesai.");
+
+        } catch (error) {
+            console.error("Error deleting import session:", error);
+            alert("Gagal menghapus sesi impor. Silakan coba lagi.");
         }
     });
 };
+
 
 // --- Logika CSV & Ekspor (Tidak berubah) ---
 function parseRobustCSV(csvText) {
@@ -456,10 +477,10 @@ promptDetailContent.addEventListener('click', e => {
         originalPromptText.textContent = prompt.promptText;
         variationResultsContainer.innerHTML = '';
         manualVariationInput.value = '';
-        poseVariationSelect.value = '';
-        clothingVariationSelect.value = '';
-        expressionVariationSelect.value = '';
-        hairstyleVariationSelect.value = '';
+        styleVariationSelect.value = '';
+        clothingStyleVariationSelect.value = '';
+        clothingCoverageVariationSelect.value = '';
+        hijabVariationSelect.value = '';
         backgroundVariationSelect.value = '';
         cameraAngleVariationSelect.value = '';
         openModal(variationModal);
@@ -477,17 +498,17 @@ variationHistoryList.addEventListener('click', e => {
         });
     }
 });
-// ### PERBAIKAN ###: Logika variasi sekarang menggunakan prompt yang lebih terstruktur
 generateVariationBtn.addEventListener('click', async () => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
+    
     let instruction = manualVariationInput.value.trim();
     if (!instruction) {
         const variations = [];
-        if (poseVariationSelect.value) variations.push(poseVariationSelect.value);
-        if (clothingVariationSelect.value) variations.push(clothingVariationSelect.value);
-        if (expressionVariationSelect.value) variations.push(expressionVariationSelect.value);
-        if (hairstyleVariationSelect.value) variations.push(hairstyleVariationSelect.value);
+        if (styleVariationSelect.value) variations.push(styleVariationSelect.value);
+        if (clothingStyleVariationSelect.value) variations.push(clothingStyleVariationSelect.value);
+        if (clothingCoverageVariationSelect.value) variations.push(clothingCoverageVariationSelect.value);
+        if (hijabVariationSelect.value) variations.push(hijabVariationSelect.value);
         if (backgroundVariationSelect.value) variations.push(backgroundVariationSelect.value);
         if (cameraAngleVariationSelect.value) variations.push(cameraAngleVariationSelect.value);
         instruction = variations.join(', ');
@@ -502,23 +523,23 @@ generateVariationBtn.addEventListener('click', async () => {
 You are a world-class, expert prompt engineer for photorealistic image generation. Your task is to creatively and intelligently rewrite a base prompt into three distinct, high-quality variations based on a set of modification instructions.
 
 Follow these rules STRICTLY:
-1.  **Integrate, Don't Append:** You must integrate the instructions seamlessly into the prompt. DO NOT simply append the instructions at the end.
-2.  **Maintain Language:** The output language MUST match the language of the original prompt. If the original is in English, all variations must be in English.
-3.  **Preserve Core Elements:** Preserve the core subject, style, and parameters (like --ar 9:16) of the original prompt unless the instructions explicitly ask to change them.
-4.  **No Rendering Terms for Realism:** For prompts with a realistic or photographic style, you are STRICTLY FORBIDDEN from using words like 'render', 'rendering', '3D', 'OC rendering', 'unreal engine', etc. If the original prompt contains these words, you must REMOVE them or REPLACE them with more suitable photographic terms.
-5.  **Create Distinct Variations:** Each of the three variations should be unique and explore a different creative aspect of the instructions.
+1.  **Integrate, Don't Just Append:** You must intelligently integrate the instructions into the prompt's structure. DO NOT simply append the instructions at the end. The final prompt must be a single, coherent sentence.
+2.  **Maintain Original Language:** The output language MUST exactly match the language of the original prompt. If the original is in English, all variations must be in English.
+3.  **Preserve Core Concepts:** You must preserve the core, defining elements of the original prompt (like a specific character, a key object, or an unchangeable attribute like "hijab" or "glasses") unless the instructions explicitly ask to change them. For example, if the original prompt mentions "hijab", the subject in the variations MUST wear a hijab.
+4.  **No Rendering Terms for Realism:** For prompts with a realistic or photographic style, you are STRICTLY FORBIDDEN from using words like 'render', 'rendering', '3D', 'OC rendering', 'unreal engine', etc. If the original prompt contains these words, you must REMOVE them or REPLACE them with more suitable photographic terms (e.g., 'photograph', 'cinematic lighting').
+5.  **Create 3 Distinct Variations:** Each of the three variations should be unique and explore a different creative interpretation of the instructions.
 
 BASE PROMPT:
 """
 ${prompt.promptText}
 """
 
-MODIFICATION INSTRUCTIONS:
+MODIFICATION INSTRUCTIONS (in English, apply them to the base prompt's language):
 """
 Apply the following changes: ${instruction}
 """
 
-Now, generate the three variations.
+Now, generate the three variations based on all the rules above.
 `;
 
     const schema = { type: "OBJECT", properties: { "variations": { "type": "ARRAY", "items": { "type": "STRING" } } } };
