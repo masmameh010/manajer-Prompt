@@ -94,7 +94,7 @@ const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
 
 
-// --- Fungsi Panggilan API Gemini (Tidak berubah) ---
+// --- Fungsi Panggilan API Gemini ---
 async function callGemini(prompt, schema) {
     const apiKey = localStorage.getItem('geminiApiKey');
     if (!apiKey) {
@@ -130,12 +130,10 @@ const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.i
 const openModal = (modalElement) => modalElement.classList.remove('hidden');
 const closeModal = (modalElement) => modalElement.classList.add('hidden');
 
-// ### PERBAIKAN ###: Fungsi konfirmasi sekarang lebih andal
 let confirmCallback = null;
 const showConfirmation = (message, callback) => { 
     if (!alertModal || !alertMessage) {
         console.error("Elemen modal konfirmasi tidak ditemukan!");
-        // Fallback ke confirm bawaan browser jika modal kustom gagal
         if (confirm(message)) {
             callback();
         }
@@ -193,7 +191,6 @@ const renderPrompts = (promptsToRender, title) => {
     });
     showPage('page-prompts');
 };
-// ### PERBAIKAN ###: Fungsi render detail sekarang menyertakan tombol salin
 const renderPromptDetail = (prompt) => {
     currentPromptId = prompt.id;
     promptDetailContent.innerHTML = `<div class="bg-white rounded-lg shadow p-6">
@@ -327,14 +324,11 @@ const handleDeleteHistory = (importId) => {
         const promptsQuery = query(collection(db, `artifacts/${appId}/users/${userId}/prompts`), where("importId", "==", importId));
         const promptsSnapshot = await getDocs(promptsQuery);
         const batch = writeBatch(db);
-        promptsSnapshot.forEach(doc => {
-            // Kita juga harus menghapus subkoleksi variasi dari setiap prompt yang diimpor
-            const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${doc.id}/variations`;
-            // Ini adalah operasi asinkron, idealnya kita kumpulkan semua promise
-            // Namun untuk kesederhanaan, kita hapus satu per satu. Ini mungkin lambat untuk impor besar.
-            deleteCollection(variationsPath);
-            batch.delete(doc.ref);
-        });
+        for (const promptDoc of promptsSnapshot.docs) {
+            const variationsPath = `artifacts/${appId}/users/${userId}/prompts/${promptDoc.id}/variations`;
+            await deleteCollection(variationsPath);
+            batch.delete(promptDoc.ref);
+        }
         const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
         batch.delete(historyDocRef);
         try { 
@@ -437,7 +431,6 @@ promptList.addEventListener('click', (e) => {
         if(prompt) renderPromptDetail(prompt);
     }
 });
-// ### PERBAIKAN ###: Event listener untuk detail prompt sekarang lebih terstruktur
 promptDetailContent.addEventListener('click', e => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
@@ -472,7 +465,6 @@ promptDetailContent.addEventListener('click', e => {
         openModal(variationModal);
     }
 });
-// ### PERBAIKAN ###: Event listener untuk riwayat variasi sekarang memanggil konfirmasi
 variationHistoryList.addEventListener('click', e => {
     const copyBtn = e.target.closest('.copy-variation-btn');
     const deleteBtn = e.target.closest('.delete-variation-btn');
@@ -500,12 +492,30 @@ generateVariationBtn.addEventListener('click', async () => {
         instruction = variations.join(', ');
     }
     if (!instruction) { alert("Silakan pilih setidaknya satu variasi terarah atau tulis perubahan manual."); return; }
+    
     variationSpinner.classList.remove('hidden');
     generateVariationBtn.disabled = true;
     variationResultsContainer.innerHTML = `<div class="flex justify-center items-center p-4"><div class="spinner"></div><p class="ml-3 text-sm text-gray-500">Membuat variasi...</p></div>`;
-    const geminiPrompt = `Based on the original prompt: "${prompt.promptText}", generate 3 new variations with the following instruction: "${instruction}".`;
+    
+    const geminiPrompt = `
+You are a precise prompt engineering assistant. Your task is to modify an existing prompt based *only* on the specific instructions provided. You must preserve the original structure, style, and all other details of the prompt as closely as possible. Do not add or change anything that is not in the instructions.
+
+Original Prompt:
+"""
+${prompt.promptText}
+"""
+
+Modification Instructions:
+"""
+Apply the following changes: ${instruction}
+"""
+
+Now, generate 3 new prompts based on these rules.
+`;
+
     const schema = { type: "OBJECT", properties: { "variations": { "type": "ARRAY", "items": { "type": "STRING" } } } };
     const result = await callGemini(geminiPrompt, schema);
+
     variationResultsContainer.innerHTML = '';
     variationSpinner.classList.add('hidden');
     generateVariationBtn.disabled = false;
@@ -567,7 +577,6 @@ globalSearchInput.addEventListener('input', (e) => {
     const results = allPrompts.filter(p => p.judul.toLowerCase().includes(searchTerm) || p.promptText.toLowerCase().includes(searchTerm));
     renderPrompts(results, `Hasil Pencarian untuk: "${searchTerm}"`);
 });
-// ### PERBAIKAN ###: Event listener untuk riwayat impor sekarang memanggil konfirmasi
 historyList.addEventListener('click', (e) => {
     const deleteBtn = e.target.closest('.delete-history-btn');
     if (deleteBtn) {
