@@ -132,7 +132,71 @@
     </div>
     <!-- Modal Variasi Gemini -->
     <div id="variationModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label><p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p></div><div class="space-y-4 pt-2"><label class="block text-sm font-medium text-gray-900">Pilih Variasi Terarah</label><div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"><div><label for="pose-variation" class="block text-xs font-medium text-gray-600">Pose</label><select id="pose-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="dalam pose berani dan percaya diri">Pose Berani</option><option value="dalam pose menggoda yang elegan">Pose Menggoda</option><option value="dalam pose manja dan imut">Pose Manja</option><option value="dalam pose sensual yang artistik dan halus">Pose Sensual Halus</option></select></div><div><label for="clothing-variation" class="block text-xs font-medium text-gray-600">Pakaian</label><select id="clothing-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="mengenakan pakaian yang lebih berani dan terbuka, namun tetap artistik">Pakaian Berani</option><option value="mengenakan pakaian yang lebih terbuka secara elegan">Pakaian Terbuka Elegan</option><option value="mengenakan pakaian sensual yang halus dan tidak vulgar">Pakaian Sensual Halus</option></select></div><div><label for="expression-variation" class="block text-xs font-medium text-gray-600">Ekspresi Wajah</label><select id="expression-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="dengan ekspresi wajah tersenyum bahagia">Tersenyum Bahagia</option><option value="dengan ekspresi wajah sedih">Sedih</option><option value="dengan ekspresi wajah misterius">Misterius</option><option value="dengan ekspresi wajah fierce atau garang">Fierce / Garang</option></select></div><div><label for="hairstyle-variation" class="block text-xs font-medium text-gray-600">Gaya Rambut</label><select id="hairstyle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="dengan rambut panjang terurai">Panjang Terurai</option><option value="dengan rambut dikuncir kuda (ponytail)">Kuncir Kuda</option><option value="dengan rambut pendek model bob">Rambut Bob</option><option value="dengan rambut berwarna cerah (misal: biru atau pink)">Warna Cerah</option></select></div><div><label for="background-variation" class="block text-xs font-medium text-gray-600">Latar / Background</label><select id="background-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="berlatar pemandangan kota di malam hari dengan lampu neon">Kota Malam Hari</option><option value="berlatar hutan tropis yang rimbun">Hutan Tropis</option><option value="berlatar pantai saat matahari terbenam">Pantai Senja</option><option value="berlatar interior kafe yang nyaman">Interior Kafe</option></select></div><div><label for="camera-angle-variation" class="block text-xs font-medium text-gray-600">Sudut Pandang Kamera</label><select id="camera-angle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm"><option value="">-- Pilih --</option><option value="diambil dari sudut pandang close-up">Close-up</option><option value="diambil dari sudut pandang full-body shot">Full Body</option><option value="diambil dari sudut pandang dari atas (high-angle shot)">Dari Atas</option><option value="diambil dari sudut pandang dari bawah (low-angle shot)">Dari Bawah</option></select></div></div><div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual</label><textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: ubah latar menjadi hutan berkabut, tambahkan senyum tipis di wajahnya..."></textarea></div><button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">Buat Variasi<div id="variation-spinner" class="spinner hidden"></div></button></div><div id="variation-results-container" class="space-y-3 pt-4"></div></div><div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg"><button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button></div></div></div>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label><p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p></div><div class="space-y-4 pt-2"><label class="block text-sm font-medium text-gray-900">Pilih Variasi Terarah</label>
+            
+            <!-- ### PERUBAHAN DIMULAI DI SINI ### -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div>
+                    <label for="style-variation" class="block text-xs font-medium text-gray-600">Gaya / Nuansa</label>
+                    <select id="style-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Pilih --</option>
+                        <option value="change to a tastefully daring and alluring style (artistic, not explicit)">Gaya Berani (Artistik)</option>
+                        <option value="change to a sweet, cute, and innocent style">Gaya Manis & Imut</option>
+                        <option value="change to a classy, elegant, and sophisticated style">Gaya Elegan & Berkelas</option>
+                        <option value="change to a mysterious and moody style">Gaya Misterius</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="clothing-style-variation" class="block text-xs font-medium text-gray-600">Gaya Pakaian</label>
+                    <select id="clothing-style-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Pilih --</option>
+                        <option value="change the clothing to a beautiful traditional dress">Pakaian Tradisional</option>
+                        <option value="change the clothing to a modern casual outfit (like jeans and t-shirt)">Pakaian Kasual Modern</option>
+                        <option value="change the clothing to an elegant evening gown">Gaun Malam Elegan</option>
+                        <option value="change the clothing to sportswear">Pakaian Olahraga</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="clothing-coverage-variation" class="block text-xs font-medium text-gray-600">Tingkat Keterbukaan Pakaian</label>
+                    <select id="clothing-coverage-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Pilih --</option>
+                        <option value="make the clothing more revealing in a tasteful and artistic way">Lebih Terbuka (Artistik)</option>
+                        <option value="make the clothing more covered and modest">Lebih Tertutup & Sopan</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="hijab-variation" class="block text-xs font-medium text-gray-600">Jenis Hijab (Jika Ada)</label>
+                    <select id="hijab-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Pilih --</option>
+                        <option value="ensure the subject is wearing a proper hijab that fully covers the hair, styled elegantly">Pastikan Berhijab (Elegan)</option>
+                        <option value="change to a simple, everyday hijab style">Gaya Hijab Sederhana</option>
+                        <option value="change to a sporty hijab style">Gaya Hijab Sporty</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="background-variation" class="block text-xs font-medium text-gray-600">Latar / Background</label>
+                    <select id="background-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Pilih --</option>
+                        <option value="change the background to a neon-lit city street at night">Kota Malam Hari</option>
+                        <option value="change the background to a lush tropical forest">Hutan Tropis</option>
+                        <option value="change the background to a beach at sunset">Pantai Senja</option>
+                        <option value="change the background to a cozy cafe interior">Interior Kafe</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="camera-angle-variation" class="block text-xs font-medium text-gray-600">Sudut Pandang Kamera</label>
+                    <select id="camera-angle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                        <option value="">-- Pilih --</option>
+                        <option value="change the camera angle to a close-up shot of the face">Close-up</option>
+                        <option value="change the camera angle to a full-body shot">Full Body</option>
+                        <option value="change the camera angle to a high-angle shot">Dari Atas</option>
+                        <option value="change the camera angle to a low-angle shot">Dari Bawah</option>
+                    </select>
+                </div>
+            </div>
+            <!-- ### PERUBAHAN SELESAI DI SINI ### -->
+
+            <div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual (dalam Bahasa Inggris)</label><textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: add a subtle smile, change the hair color to blue..."></textarea></div><button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">Buat Variasi<div id="variation-spinner" class="spinner hidden"></div></button></div><div id="variation-results-container" class="space-y-3 pt-4"></div></div><div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg"><button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button></div></div></div>
     <!-- Modal Pengaturan API -->
     <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-cog text-gray-600"></i>Pengaturan</h2><button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Kunci API Gemini</label><p class="text-xs text-gray-500 mb-2">Kunci API Anda disimpan dengan aman di peramban (browser) Anda dan tidak akan dibagikan.</p><input type="password" id="apiKeyInput" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Masukkan kunci API Anda di sini..."></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="saveApiKeyBtn" class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div></div></div></div>
     <!-- Modal Konfirmasi -->
