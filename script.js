@@ -243,6 +243,8 @@ const renderPromptDetail = (prompt) => {
     });
     showPage('page-prompt-detail');
 };
+
+// ### PERBAIKAN ###: Fungsi ini diubah untuk menghilangkan `data-text` yang bermasalah.
 const renderVariationHistory = (variations) => {
     variationHistoryList.innerHTML = '';
     if (!variations || variations.length === 0) {
@@ -252,7 +254,8 @@ const renderVariationHistory = (variations) => {
     variations.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).forEach(v => {
         const item = document.createElement('div');
         item.className = 'bg-white rounded-lg shadow p-4';
-        item.innerHTML = `<p class="text-sm text-gray-700 whitespace-pre-wrap">${v.promptText}</p><div class="flex justify-end items-center gap-4 mt-3 pt-3 border-t"><button data-text="${v.promptText}" class="copy-variation-btn text-sm text-indigo-600 font-semibold hover:text-indigo-800">Salin</button><button data-id="${v.id}" class="delete-variation-btn text-sm text-red-600 font-semibold hover:text-red-800">Hapus</button></div>`;
+        // Tombol "Salin" tidak lagi memiliki atribut `data-text`.
+        item.innerHTML = `<p class="text-sm text-gray-700 whitespace-pre-wrap">${v.promptText}</p><div class="flex justify-end items-center gap-4 mt-3 pt-3 border-t"><button class="copy-variation-btn text-sm text-indigo-600 font-semibold hover:text-indigo-800">Salin</button><button data-id="${v.id}" class="delete-variation-btn text-sm text-red-600 font-semibold hover:text-red-800">Hapus</button></div>`;
         variationHistoryList.appendChild(item);
     });
 };
@@ -496,12 +499,20 @@ promptDetailContent.addEventListener('click', e => {
         openModal(variationModal);
     }
 });
+
+// ### PERBAIKAN ###: Event listener ini diubah untuk mengambil teks langsung dari DOM.
 variationHistoryList.addEventListener('click', e => {
     const copyBtn = e.target.closest('.copy-variation-btn');
     const deleteBtn = e.target.closest('.delete-variation-btn');
 
     if (copyBtn) {
-        copyToClipboard(copyBtn.dataset.text, copyBtn);
+        // Cari elemen pembungkus terdekat yang berisi teks dan tombol
+        const historyItem = copyBtn.closest('.bg-white.rounded-lg.shadow.p-4');
+        if (historyItem) {
+            // Temukan elemen <p> di dalamnya dan salin teksnya
+            const textToCopy = historyItem.querySelector('p').textContent;
+            copyToClipboard(textToCopy, copyBtn);
+        }
     } else if (deleteBtn) {
         showConfirmation("Anda yakin ingin menghapus variasi ini?", () => {
             handleDeleteVariation(deleteBtn.dataset.id);
@@ -562,8 +573,6 @@ Now, generate the three variations based on all the rules above.
         result.variations.forEach((text) => {
             const div = document.createElement('div');
             div.className = 'variation-suggestion bg-white p-3 rounded-lg shadow-sm';
-            // ### PERBAIKAN ###: Hapus atribut data-text yang bermasalah.
-            // Teks akan diambil langsung dari elemen <p> saat tombol diklik.
             div.innerHTML = `<p class="text-sm">${text}</p><div class="flex justify-end gap-3 mt-2"><button class="copy-new-variation-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">Salin</button><button class="save-new-variation-btn text-sm font-semibold text-green-600 hover:text-green-800">Simpan ke Riwayat</button></div>`;
             variationResultsContainer.appendChild(div);
         });
@@ -572,38 +581,29 @@ Now, generate the three variations based on all the rules above.
     }
 });
 
-// ### PERBAIKAN ###: Event listener ini diubah total untuk mengatasi masalah penyalinan.
-// Kode ini sekarang lebih andal karena mengambil teks langsung dari DOM, bukan dari atribut data-*
 variationResultsContainer.addEventListener('click', async e => {
-    // Cek apakah tombol 'Salin' yang diklik
     const copyBtn = e.target.closest('.copy-new-variation-btn');
     if (copyBtn) {
-        // 1. Cari kontainer terluar dari tombol yang diklik
         const suggestionContainer = copyBtn.closest('.variation-suggestion');
         if (suggestionContainer) {
-            // 2. Temukan elemen <p> di dalam kontainer itu dan ambil teksnya
             const textToCopy = suggestionContainer.querySelector('p').textContent;
-            // 3. Salin teks yang benar
             copyToClipboard(textToCopy, copyBtn);
         }
-        return; // Hentikan eksekusi setelah menyalin
+        return; 
     }
 
-    // Lakukan hal yang sama untuk tombol 'Simpan'
     const saveBtn = e.target.closest('.save-new-variation-btn');
     if (saveBtn) {
         const button = saveBtn;
         button.textContent = 'Menyimpan...';
         button.disabled = true;
 
-        // Ambil teks dengan cara yang aman
         const suggestionContainer = saveBtn.closest('.variation-suggestion');
         if (suggestionContainer) {
             const textToSave = suggestionContainer.querySelector('p').textContent;
             try {
                 const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
                 await addDoc(collection(db, path), { promptText: textToSave, createdAt: serverTimestamp() });
-                // Hapus kartu variasi setelah berhasil disimpan
                 suggestionContainer.remove();
             } catch (error) {
                 console.error("Gagal menyimpan variasi ke Firestore:", error);
@@ -612,7 +612,6 @@ variationResultsContainer.addEventListener('click', async e => {
                 button.disabled = false;
             }
         } else {
-             // Fallback jika container tidak ditemukan
             button.textContent = 'Simpan ke Riwayat';
             button.disabled = false;
         }
