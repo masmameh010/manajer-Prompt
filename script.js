@@ -10,7 +10,7 @@ import {
 import { getFirestore, collection, doc, onSnapshot, addDoc, setDoc, deleteDoc, query, writeBatch, where, getDocs, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-firestore.js";
 
 // --- KONFIGURASI FIREBASE ANDA ---
-// Konfigurasi ini sekarang diambil dari window object yang disuntikkan oleh Netlify atau diisi manual
+// Ganti dengan konfigurasi Firebase proyek Anda
 const firebaseConfig = {
     apiKey: "AIzaSyA0hPu7lHjX-j_w4A9G8zIYjR1EgudZhx4",
     authDomain: "manager-prompt-lokal.firebaseapp.com",
@@ -70,7 +70,6 @@ const modalTitle = document.getElementById('modalTitle');
 const userInfo = document.getElementById('userInfo');
 const alertModal = document.getElementById('alertModal');
 const alertMessage = document.getElementById('alertMessage');
-// ### PERBAIKAN ###: Ubah ke `let` agar bisa di-clone untuk menghapus listener
 let alertConfirmBtn = document.getElementById('alertConfirmBtn');
 let alertCancelBtn = document.getElementById('alertCancelBtn');
 const variationModal = document.getElementById('variationModal');
@@ -96,7 +95,7 @@ const backgroundVariationSelect = document.getElementById('background-variation'
 const cameraAngleVariationSelect = document.getElementById('camera-angle-variation');
 
 
-// --- Fungsi Panggilan API Gemini (Tidak berubah) ---
+// --- Fungsi Panggilan API Gemini ---
 async function callGemini(prompt, schema) {
     const apiKey = localStorage.getItem('geminiApiKey');
     if (!apiKey) {
@@ -132,7 +131,6 @@ const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.i
 const openModal = (modalElement) => modalElement.classList.remove('hidden');
 const closeModal = (modalElement) => modalElement.classList.add('hidden');
 
-// ### PERBAIKAN ###: Fungsi konfirmasi sekarang lebih andal dan tidak meninggalkan "hantu"
 const showConfirmation = (message, onConfirm) => {
     if (!alertModal || !alertMessage || !alertConfirmBtn || !alertCancelBtn) {
         console.error("Elemen modal konfirmasi tidak ditemukan!");
@@ -143,9 +141,7 @@ const showConfirmation = (message, onConfirm) => {
     }
 
     alertMessage.textContent = message;
-
-    // Untuk menghapus semua "ghost" listener, kita clone tombolnya.
-    // Ini adalah cara paling ampuh untuk memastikan tombol dalam keadaan bersih.
+    
     const newConfirmBtn = alertConfirmBtn.cloneNode(true);
     alertConfirmBtn.parentNode.replaceChild(newConfirmBtn, alertConfirmBtn);
     alertConfirmBtn = newConfirmBtn;
@@ -154,7 +150,6 @@ const showConfirmation = (message, onConfirm) => {
     alertCancelBtn.parentNode.replaceChild(newCancelBtn, alertCancelBtn);
     alertCancelBtn = newCancelBtn;
 
-    // Tambahkan listener yang baru dan bersih
     alertConfirmBtn.addEventListener('click', () => {
         onConfirm();
         closeModal(alertModal);
@@ -340,7 +335,6 @@ const handleDeleteVariation = async (variationId) => {
     const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
     try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
 };
-// ### PERBAIKAN ###: Fungsi hapus riwayat impor sekarang jauh lebih cepat dan andal
 const handleDeleteHistory = (importId) => {
     if (!userId || !importId) return;
     showConfirmation('Anda yakin ingin menghapus semua prompt dari sesi impor ini?', async () => {
@@ -379,7 +373,7 @@ const handleDeleteHistory = (importId) => {
 };
 
 
-// --- Logika CSV & Ekspor (Tidak berubah) ---
+// --- Logika CSV & Ekspor ---
 function parseRobustCSV(csvText) {
     const rows = []; let fields = []; let currentField = ''; let inQuotes = false;
     const text = csvText.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
@@ -568,34 +562,63 @@ Now, generate the three variations based on all the rules above.
         result.variations.forEach((text) => {
             const div = document.createElement('div');
             div.className = 'variation-suggestion bg-white p-3 rounded-lg shadow-sm';
-            div.innerHTML = `<p class="text-sm">${text}</p><div class="flex justify-end gap-3 mt-2"><button data-text="${text}" class="copy-new-variation-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">Salin</button><button data-text="${text}" class="save-new-variation-btn text-sm font-semibold text-green-600 hover:text-green-800">Simpan ke Riwayat</button></div>`;
+            // ### PERBAIKAN ###: Hapus atribut data-text yang bermasalah.
+            // Teks akan diambil langsung dari elemen <p> saat tombol diklik.
+            div.innerHTML = `<p class="text-sm">${text}</p><div class="flex justify-end gap-3 mt-2"><button class="copy-new-variation-btn text-sm font-semibold text-indigo-600 hover:text-indigo-800">Salin</button><button class="save-new-variation-btn text-sm font-semibold text-green-600 hover:text-green-800">Simpan ke Riwayat</button></div>`;
             variationResultsContainer.appendChild(div);
         });
     } else {
         variationResultsContainer.innerHTML = `<p class="text-red-500 text-sm p-4">Gagal membuat variasi. Silakan coba lagi.</p>`;
     }
 });
+
+// ### PERBAIKAN ###: Event listener ini diubah total untuk mengatasi masalah penyalinan.
+// Kode ini sekarang lebih andal karena mengambil teks langsung dari DOM, bukan dari atribut data-*
 variationResultsContainer.addEventListener('click', async e => {
-    const text = e.target.dataset.text;
-    if (!text) return;
-    if (e.target.matches('.copy-new-variation-btn')) {
-        copyToClipboard(text, e.target);
-    } else if (e.target.matches('.save-new-variation-btn')) {
-        const button = e.target;
+    // Cek apakah tombol 'Salin' yang diklik
+    const copyBtn = e.target.closest('.copy-new-variation-btn');
+    if (copyBtn) {
+        // 1. Cari kontainer terluar dari tombol yang diklik
+        const suggestionContainer = copyBtn.closest('.variation-suggestion');
+        if (suggestionContainer) {
+            // 2. Temukan elemen <p> di dalam kontainer itu dan ambil teksnya
+            const textToCopy = suggestionContainer.querySelector('p').textContent;
+            // 3. Salin teks yang benar
+            copyToClipboard(textToCopy, copyBtn);
+        }
+        return; // Hentikan eksekusi setelah menyalin
+    }
+
+    // Lakukan hal yang sama untuk tombol 'Simpan'
+    const saveBtn = e.target.closest('.save-new-variation-btn');
+    if (saveBtn) {
+        const button = saveBtn;
         button.textContent = 'Menyimpan...';
         button.disabled = true;
-        try {
-            const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
-            await addDoc(collection(db, path), { promptText: text, createdAt: serverTimestamp() });
-            button.closest('.variation-suggestion').remove();
-        } catch (error) {
-            console.error("Gagal menyimpan variasi ke Firestore:", error);
-            alert("Gagal menyimpan variasi. Periksa koneksi internet Anda dan coba lagi.");
+
+        // Ambil teks dengan cara yang aman
+        const suggestionContainer = saveBtn.closest('.variation-suggestion');
+        if (suggestionContainer) {
+            const textToSave = suggestionContainer.querySelector('p').textContent;
+            try {
+                const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
+                await addDoc(collection(db, path), { promptText: textToSave, createdAt: serverTimestamp() });
+                // Hapus kartu variasi setelah berhasil disimpan
+                suggestionContainer.remove();
+            } catch (error) {
+                console.error("Gagal menyimpan variasi ke Firestore:", error);
+                alert("Gagal menyimpan variasi. Periksa koneksi internet Anda dan coba lagi.");
+                button.textContent = 'Simpan ke Riwayat';
+                button.disabled = false;
+            }
+        } else {
+             // Fallback jika container tidak ditemukan
             button.textContent = 'Simpan ke Riwayat';
             button.disabled = false;
         }
     }
 });
+
 suggestMetadataBtn.addEventListener('click', async () => {
     const promptText = document.getElementById('promptText').value;
     if (!promptText) { alert("Mohon isi Prompt Teks terlebih dahulu."); return; }
@@ -642,9 +665,7 @@ closeVariationModalBtn.addEventListener('click', () => closeModal(variationModal
 closeVariationModalBtnFooter.addEventListener('click', () => closeModal(variationModal));
 variationModal.addEventListener('click', (e) => { if (e.target === variationModal) { closeModal(variationModal); } });
 promptForm.addEventListener('submit', handleSavePrompt);
-// ### PERBAIKAN ###: Event listener untuk tombol modal konfirmasi sekarang ada di dalam fungsi showConfirmation
-// alertCancelBtn.addEventListener('click', () => closeModal(alertModal));
-// alertConfirmBtn.addEventListener('click', () => { if (confirmCallback) confirmCallback(); closeModal(alertModal); });
+
 settingsBtn.addEventListener('click', () => {
     apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
     openModal(settingsModal);
