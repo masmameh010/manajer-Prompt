@@ -244,7 +244,6 @@ const renderPromptDetail = (prompt) => {
     showPage('page-prompt-detail');
 };
 
-// ### PERBAIKAN ###: Fungsi ini diubah untuk menghilangkan `data-text` yang bermasalah.
 const renderVariationHistory = (variations) => {
     variationHistoryList.innerHTML = '';
     if (!variations || variations.length === 0) {
@@ -254,7 +253,6 @@ const renderVariationHistory = (variations) => {
     variations.sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0)).forEach(v => {
         const item = document.createElement('div');
         item.className = 'bg-white rounded-lg shadow p-4';
-        // Tombol "Salin" tidak lagi memiliki atribut `data-text`.
         item.innerHTML = `<p class="text-sm text-gray-700 whitespace-pre-wrap">${v.promptText}</p><div class="flex justify-end items-center gap-4 mt-3 pt-3 border-t"><button class="copy-variation-btn text-sm text-indigo-600 font-semibold hover:text-indigo-800">Salin</button><button data-id="${v.id}" class="delete-variation-btn text-sm text-red-600 font-semibold hover:text-red-800">Hapus</button></div>`;
         variationHistoryList.appendChild(item);
     });
@@ -278,10 +276,23 @@ const setupListeners = () => {
     if (!userId) return;
     const promptsPath = `artifacts/${appId}/users/${userId}/prompts`;
     if (unsubscribePrompts) unsubscribePrompts();
+    // ### PERBAIKAN ###: Query tidak diubah, pengurutan dilakukan setelah data diterima
     unsubscribePrompts = onSnapshot(query(collection(db, promptsPath)), (snapshot) => {
         allPrompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        
+        // ### PERBAIKAN ###: Mengurutkan semua prompt berdasarkan waktu pembuatan (createdAt)
+        // Ini memastikan urutan data dari CSV tetap terjaga.
+        // Data lama yang tidak punya `createdAt` akan ditaruh di awal.
+        allPrompts.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+
         if (appContainer.classList.contains('hidden')) return;
-        renderCategories();
+        
+        // Render ulang tampilan yang mungkin sedang aktif
+        if (document.getElementById('page-categories').classList.contains('active')) {
+            renderCategories();
+        } else if (document.getElementById('page-prompts').classList.contains('active') && currentCategory) {
+            renderPrompts(allPrompts.filter(p => p.kategori === currentCategory), `Kategori: ${currentCategory}`);
+        }
     }, (error) => {
         console.error("Error listening to prompts:", error);
     });
@@ -302,9 +313,11 @@ const handleSavePrompt = async (e) => {
     const collectionPath = `artifacts/${appId}/users/${userId}/prompts`;
     try {
         if (id) {
+            // Saat mengedit, kita tidak mengubah `createdAt`
             await setDoc(doc(db, collectionPath, id), promptData, { merge: true });
         } else {
-            await addDoc(collection(db, collectionPath), promptData);
+            // ### PERBAIKAN ###: Menambahkan `createdAt` saat membuat prompt baru
+            await addDoc(collection(db, collectionPath), { ...promptData, createdAt: serverTimestamp() });
         }
         closeModal(modal);
     } catch (error) { console.error("Error saving prompt:", error); }
@@ -421,7 +434,14 @@ const handleCsvImport = (event) => {
             const promptText = values[promptIdx] || '';
             const judul = judulIdx !== -1 ? values[judulIdx] : promptText.split(',')[0].substring(0, 50);
             const newDocRef = doc(promptsCollectionRef);
-            promptsBatch.set(newDocRef, { promptText: promptText, judul: judul || 'Tanpa Judul', kategori: kategoriIdx !== -1 && values[kategoriIdx] ? values[kategoriIdx] : 'Impor', importId: importId });
+            // ### PERBAIKAN ###: Menambahkan `createdAt` saat impor dari CSV
+            promptsBatch.set(newDocRef, { 
+                promptText: promptText, 
+                judul: judul || 'Tanpa Judul', 
+                kategori: kategoriIdx !== -1 && values[kategoriIdx] ? values[kategoriIdx] : 'Impor', 
+                importId: importId,
+                createdAt: serverTimestamp() 
+            });
         });
         const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
         const historyBatch = writeBatch(db);
@@ -500,16 +520,13 @@ promptDetailContent.addEventListener('click', e => {
     }
 });
 
-// ### PERBAIKAN ###: Event listener ini diubah untuk mengambil teks langsung dari DOM.
 variationHistoryList.addEventListener('click', e => {
     const copyBtn = e.target.closest('.copy-variation-btn');
     const deleteBtn = e.target.closest('.delete-variation-btn');
 
     if (copyBtn) {
-        // Cari elemen pembungkus terdekat yang berisi teks dan tombol
         const historyItem = copyBtn.closest('.bg-white.rounded-lg.shadow.p-4');
         if (historyItem) {
-            // Temukan elemen <p> di dalamnya dan salin teksnya
             const textToCopy = historyItem.querySelector('p').textContent;
             copyToClipboard(textToCopy, copyBtn);
         }
