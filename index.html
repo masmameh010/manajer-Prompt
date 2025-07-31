@@ -12,7 +12,8 @@
 <body class="text-gray-800">
 
     <!-- Halaman Login (Akan tampil pertama kali) -->
-    <div id="page-login" class="page active">
+    <!-- Menambahkan z-index untuk memastikan halaman login di atas elemen lain jika ada tumpang tindih -->
+    <div id="page-login" class="page active relative z-10">
         <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
             <div class="max-w-md w-full text-center">
                 <i class="fas fa-rocket text-6xl text-indigo-600"></i>
@@ -29,7 +30,8 @@
     </div>
 
     <!-- Konten Aplikasi Utama (Disembunyikan sebelum login) -->
-    <div id="app-container" class="hidden">
+    <!-- Menambahkan z-index lebih rendah dari halaman login -->
+    <div id="app-container" class="hidden relative z-0">
         <!-- Header -->
         <header class="bg-white shadow-sm sticky top-0 z-20">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
