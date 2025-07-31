@@ -56,7 +56,12 @@ body {
 
 /* Gaya untuk Foto Profil */
 .profile-picture {
-    ,0.1);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid white;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
 
 /* Mencegah pengguliran pada body saat modal aktif */
