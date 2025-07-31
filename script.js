@@ -858,18 +858,15 @@ const handleLogout = async () => {
     }
 };
 
-// Menambahkan setTimeout untuk memastikan DOM sepenuhnya siap
+// Pemasangan event listener loginBtn langsung di DOMContentLoaded
 document.addEventListener('DOMContentLoaded', () => {
     console.log('DOM Content Loaded. Attaching login button listener.');
-    // Memberikan sedikit waktu ekstra untuk memastikan semua rendering awal selesai
-    setTimeout(() => {
-        if (loginBtn) {
-            loginBtn.addEventListener('click', handleGoogleLogin);
-            console.log('Event listener tombol login terpasang setelah timeout.');
-        } else {
-            console.error('Tombol login (loginBtn) tidak ditemukan di DOM setelah timeout!');
-        }
-    }, 100); // Penundaan 100ms
+    if (loginBtn) {
+        loginBtn.addEventListener('click', handleGoogleLogin);
+        console.log('Event listener tombol login terpasang.');
+    } else {
+        console.error('Tombol login (loginBtn) tidak ditemukan di DOM!');
+    }
 });
 
 logoutBtn.addEventListener('click', handleLogout);
@@ -877,7 +874,7 @@ onAuthStateChanged(auth, (user) => {
     console.log('Status otentikasi berubah. Pengguna:', user); // Debugging: Lihat status otentikasi
     if (user) {
         userId = user.uid;
-        appContainer.classList.remove('hidden');
+        appContainer.classList.remove('hidden', 'pointer-events-none'); // Hapus pointer-events-none saat login
         loginPage.classList.remove('active');
         loginPage.classList.add('hidden');
         userInfo.innerHTML = `
@@ -888,7 +885,7 @@ onAuthStateChanged(auth, (user) => {
         showPage('page-categories');
     } else {
         userId = null;
-        appContainer.classList.add('hidden');
+        appContainer.classList.add('hidden', 'pointer-events-none'); // Tambahkan pointer-events-none saat logout
         loginPage.classList.remove('hidden');
         loginPage.classList.add('active');
         if (unsubscribePrompts) unsubscribePrompts();
