@@ -19,7 +19,7 @@
                 <h1 class="text-3xl sm:text-4xl font-bold text-gray-800 mt-6">Manajemen Prompt Imajinasi Lokal</h1>
                 <p class="text-gray-600 mt-2">Simpan dan kelola semua prompt AI Anda di satu tempat, dari mana saja.</p>
                 <div class="mt-8">
-                    <button id="loginBtn" class="w-full bg-white border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-3 shadow-sm">
+                    <button id="loginBtn" class="w-full bg-white border border-gray-300 text-gray-700 font-semibold px-6 py-3 rounded-lg hover:bg-gray-100 transition-colors flex items-center justify-center gap-3">
                         <img src="https://www.google.com/favicon.ico" alt="Ikon Google" class="w-6 h-6">
                         <span>Masuk dengan Google</span>
                     </button>
@@ -76,6 +76,11 @@
                         </button>
                     </div>
                 </div>
+                <!-- LOADING SPINNER HEADER MULAI -->
+                <div id="header-loader" class="absolute bottom-0 left-0 right-0 h-1 bg-gray-200 hidden">
+                  <div class="h-full bg-indigo-600 w-0 transition-all duration-300"></div>
+                </div>
+                <!-- LOADING SPINNER HEADER SELESAI -->
             </div>
         </header>
 
@@ -84,6 +89,14 @@
             <!-- Halaman Kategori -->
             <div id="page-categories" class="page">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Daftar Kategori</h2>
+                <!-- SKELETON LOADING KATEGORI MULAI -->
+                <div id="loading-categories" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+                  <div class="bg-gray-100 rounded-lg p-6 animate-pulse h-32"></div>
+                  <div class="bg-gray-100 rounded-lg p-6 animate-pulse h-32"></div>
+                  <div class="bg-gray-100 rounded-lg p-6 animate-pulse h-32 hidden sm:block"></div>
+                  <div class="bg-gray-100 rounded-lg p-6 animate-pulse h-32 hidden lg:block"></div>
+                </div>
+                <!-- SKELETON LOADING KATEGORI SELESAI -->
                 <div id="category-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
                 <div id="empty-state-categories" class="text-center py-20 bg-white rounded-lg shadow hidden">
                     <i class="fas fa-folder-open text-6xl text-gray-300 mb-4"></i>
@@ -94,14 +107,14 @@
 
             <!-- Halaman Daftar Prompt -->
             <div id="page-prompts" class="page">
-                <div class="flex items-center mb-6"><button id="backToCategoriesBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
+                <div class="flex items-center mb-6"><button id="backToCategoriesBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i>Kembali</button></div>
                 <h2 id="prompt-list-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
                 <div id="prompt-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
             </div>
             
             <!-- Halaman Detail Prompt -->
             <div id="page-prompt-detail" class="page">
-                 <div class="flex items-center mb-6"><button id="backToPromptsBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Daftar Prompt</span></button></div>
+                 <div class="flex items-center mb-6"><button id="backToPromptsBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i>Kembali</button></div>
                  <div id="prompt-detail-content"></div>
                  <div class="mt-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Riwayat Variasi</h3>
@@ -111,7 +124,7 @@
 
             <!-- Halaman Riwayat Impor -->
             <div id="page-history" class="page">
-                 <div class="flex items-center mb-6"><button id="backToCategoriesBtnFromHistory" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
+                 <div class="flex items-center mb-6"><button id="backToCategoriesBtnFromHistory" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i>Kembali</button></div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Riwayat Impor</h2>
                 <div id="history-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
             </div>
@@ -124,16 +137,14 @@
     <div id="promptModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl my-8">
             <form id="promptForm" class="p-6">
-                <div class="flex justify-between items-center mb-6 pb-4 border-b"><h2 id="modalTitle" class="text-2xl font-bold"></h2><button type="button" id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div>
-                <input type="hidden" id="promptId"><div class="space-y-4"><div><label for="promptText" class="block text-sm font-medium text-gray-700 mb-1">Prompt Teks</label><textarea id="promptText" rows="6" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="judul" class="block text-sm font-medium text-gray-700 mb-1">Judul</label><input type="text" id="judul" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></div><div><label for="kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label><input type="text" id="kategori" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></div></div><button type="button" id="suggestMetadataBtn" class="w-full bg-yellow-100 text-yellow-800 font-semibold px-4 py-2 rounded-lg hover:bg-yellow-200 flex items-center justify-center gap-2"><i class="fas fa-lightbulb"></i><span>✨ Sarankan Judul & Kategori dengan AI</span><div id="metadata-spinner" class="spinner hidden"></div></button></div>
-                <div class="mt-8 flex justify-end gap-4"><button type="button" id="cancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300">Batal</button><button type="submit" id="saveBtn" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div>
+                <div class="flex justify-between items-center mb-6 pb-4 border-b"><h2 id="modalTitle" class="text-2xl font-bold"></h2><button type="button" id="closeModalBtn" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button></div>
+                <input type="hidden" id="promptId"><div class="space-y-4"><div><label for="promptText" class="block text-sm font-medium text-gray-700 mb-1">Prompt Teks</label><textarea id="promptText" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" rows="3" required></textarea></div><div><label for="promptCategory" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label><select id="promptCategory" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500" required></select></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="cancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300">Batal</button><button type="submit" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div>
             </form>
         </div>
     </div>
     <!-- Modal Variasi Gemini -->
     <div id="variationModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label><p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p></div><div class="space-y-4 pt-2"><label class="block text-sm font-medium text-gray-900">Pilih Variasi Terarah</label>
-            
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold">Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button></div>
             <!-- ### PERUBAHAN DIMULAI DI SINI ### -->
             <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
                 <div>
@@ -196,11 +207,11 @@
             </div>
             <!-- ### PERUBAHAN SELESAI DI SINI ### -->
 
-            <div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual (dalam Bahasa Inggris)</label><textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: add a subtle smile, change the hair color to blue..."></textarea></div><button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">Buat Variasi<div id="variation-spinner" class="spinner hidden"></div></button></div><div id="variation-results-container" class="space-y-3 pt-4"></div></div><div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg"><button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button></div></div></div>
+            <div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual (dalam Bahasa Inggris)</label><textarea id="manual-variation" rows="2" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></textarea></div></div></div></div>
     <!-- Modal Pengaturan API -->
-    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-cog text-gray-600"></i>Pengaturan</h2><button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Kunci API Gemini</label><p class="text-xs text-gray-500 mb-2">Kunci API Anda disimpan dengan aman di peramban (browser) Anda dan tidak akan dibagikan.</p><input type="password" id="apiKeyInput" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Masukkan kunci API Anda di sini..."></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="saveApiKeyBtn" class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div></div></div></div>
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold">Pengaturan API</h2><button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-700"><i class="fas fa-times"></i></button></div><div class="space-y-4"><div><label for="apiKey" class="block text-sm font-medium text-gray-700 mb-1">API Key</label><input id="apiKey" type="text" class="w-full p-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500"></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="cancelSettingsBtn" class="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300">Batal</button><button type="button" id="saveSettingsBtn" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div></div></div></div>
     <!-- Modal Konfirmasi -->
-    <div id="alertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><p id="alertMessage" class="text-gray-800 mb-6"></p><div id="alert-buttons" class="flex justify-center gap-4"><button id="alertConfirmBtn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Ya, Hapus</button><button id="alertCancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Batal</button></div></div></div>
+    <div id="alertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><p id="alertText" class="text-lg text-gray-700"></p><div class="mt-8 flex justify-end gap-4"><button type="button" id="closeAlertBtn" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700">OK</button></div></div></div>
 
     <script type="module" src="script.js"></script>
 </body>
