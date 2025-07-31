@@ -48,11 +48,20 @@ const pages = document.querySelectorAll('.page');
 const categoryGrid = document.getElementById('category-grid');
 const promptList = document.getElementById('prompt-list');
 const historyList = document.getElementById('history-list');
-const promptListTitle = document.getElementById('prompt-list-title');
+const promptListTitle = document.getElementById('prompt-list-title'); // Still used for internal page title
 const emptyStateCategories = document.getElementById('empty-state-categories');
-const backToCategoriesBtn = document.getElementById('backToCategoriesBtn');
-const backToPromptsBtn = document.getElementById('backToPromptsBtn');
-const backToCategoriesBtnFromHistory = document.getElementById('backToCategoriesBtnFromHistory');
+
+// Header elements
+const headerCategoryActions = document.getElementById('header-category-actions');
+const headerPromptListActions = document.getElementById('header-prompt-list-actions');
+const headerPromptDetailActions = document.getElementById('header-prompt-detail-actions');
+const headerHistoryActions = document.getElementById('header-history-actions');
+const promptListTitleHeader = document.getElementById('prompt-list-title-header');
+
+const backToCategoriesBtnHeader = document.getElementById('backToCategoriesBtnHeader');
+const backToPromptsBtnHeader = document.getElementById('backToPromptsBtnHeader');
+const backToCategoriesBtnFromHistoryHeader = document.getElementById('backToCategoriesBtnFromHistoryHeader');
+
 const historyBtn = document.getElementById('historyBtn');
 const promptDetailContent = document.getElementById('prompt-detail-content');
 const variationHistoryList = document.getElementById('variation-history-list');
@@ -72,6 +81,10 @@ const alertModal = document.getElementById('alertModal');
 const alertMessage = document.getElementById('alertMessage');
 let alertConfirmBtn = document.getElementById('alertConfirmBtn');
 let alertCancelBtn = document.getElementById('alertCancelBtn');
+const messageModal = document.getElementById('messageModal'); // New message modal
+const messageContent = document.getElementById('messageContent'); // New message content
+const messageCloseBtn = document.getElementById('messageCloseBtn'); // New message close button
+
 const variationModal = document.getElementById('variationModal');
 const closeVariationModalBtn = document.getElementById('closeVariationModalBtn');
 const closeVariationModalBtnFooter = document.getElementById('closeVariationModalBtnFooter');
@@ -86,6 +99,7 @@ const settingsModal = document.getElementById('settingsModal');
 const closeSettingsModalBtn = document.getElementById('closeSettingsModalBtn');
 const apiKeyInput = document.getElementById('apiKeyInput');
 const saveApiKeyBtn = document.getElementById('saveApiKeyBtn');
+const clearApiKeyBtn = document.getElementById('clearApiKeyBtn'); // New clear API key button
 
 const styleVariationSelect = document.getElementById('style-variation');
 const clothingStyleVariationSelect = document.getElementById('clothing-style-variation');
@@ -99,7 +113,7 @@ const cameraAngleVariationSelect = document.getElementById('camera-angle-variati
 async function callGemini(prompt, schema) {
     const apiKey = localStorage.getItem('geminiApiKey');
     if (!apiKey) {
-        alert("Kunci API Gemini belum diatur. Silakan masukkan di menu Pengaturan.");
+        showAlert("Kunci API Gemini belum diatur. Silakan masukkan di menu Pengaturan.");
         return null;
     }
     const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
@@ -111,9 +125,9 @@ async function callGemini(prompt, schema) {
         const response = await fetch(apiUrl, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
         if (!response.ok) {
             if(response.status === 400) {
-                 alert("Kunci API Gemini tidak valid atau salah. Mohon periksa kembali di menu Pengaturan.");
+                 showAlert("Kunci API Gemini tidak valid atau salah. Mohon periksa kembali di menu Pengaturan.");
             } else {
-                 alert(`Terjadi kesalahan saat memanggil API: ${response.status}`);
+                 showAlert(`Terjadi kesalahan saat memanggil API: ${response.status}`);
             }
             throw new Error(`API call failed: ${response.status}`);
         }
@@ -122,18 +136,54 @@ async function callGemini(prompt, schema) {
         return null;
     } catch (error) { 
         console.error("Error calling Gemini:", error); 
+        showAlert("Terjadi kesalahan saat memanggil Gemini API. Periksa konsol untuk detail.");
         return null; 
     }
 }
 
 // --- Fungsi Navigasi Halaman & UI ---
-const showPage = (pageId) => pages.forEach(p => p.classList.toggle('active', p.id === pageId));
-const openModal = (modalElement) => modalElement.classList.remove('hidden');
-const closeModal = (modalElement) => modalElement.classList.add('hidden');
+const updateHeaderVisibility = (pageId) => {
+    // Sembunyikan semua aksi header dinamis
+    headerCategoryActions.classList.add('hidden');
+    headerPromptListActions.classList.add('hidden');
+    headerPromptDetailActions.classList.add('hidden');
+    headerHistoryActions.classList.add('hidden');
+
+    // Tampilkan aksi header yang sesuai
+    switch (pageId) {
+        case 'page-categories':
+            headerCategoryActions.classList.remove('hidden');
+            break;
+        case 'page-prompts':
+            headerPromptListActions.classList.remove('hidden');
+            break;
+        case 'page-prompt-detail':
+            headerPromptDetailActions.classList.remove('hidden');
+            break;
+        case 'page-history':
+            headerHistoryActions.classList.remove('hidden');
+            break;
+    }
+};
+
+const showPage = (pageId) => {
+    pages.forEach(p => p.classList.toggle('active', p.id === pageId));
+    updateHeaderVisibility(pageId);
+};
+
+const openModal = (modalElement) => {
+    modalElement.classList.remove('hidden');
+    document.body.classList.add('no-scroll'); // Prevent body scrolling
+};
+const closeModal = (modalElement) => {
+    modalElement.classList.add('hidden');
+    document.body.classList.remove('no-scroll'); // Restore body scrolling
+};
 
 const showConfirmation = (message, onConfirm) => {
     if (!alertModal || !alertMessage || !alertConfirmBtn || !alertCancelBtn) {
         console.error("Elemen modal konfirmasi tidak ditemukan!");
+        // Fallback to native confirm if elements are missing (though they should not be)
         if (confirm(message)) {
             onConfirm();
         }
@@ -142,6 +192,7 @@ const showConfirmation = (message, onConfirm) => {
 
     alertMessage.textContent = message;
     
+    // Clone to remove previous event listeners
     const newConfirmBtn = alertConfirmBtn.cloneNode(true);
     alertConfirmBtn.parentNode.replaceChild(newConfirmBtn, alertConfirmBtn);
     alertConfirmBtn = newConfirmBtn;
@@ -160,6 +211,25 @@ const showConfirmation = (message, onConfirm) => {
 
     openModal(alertModal);
 };
+
+const showAlert = (message) => {
+    if (!messageModal || !messageContent || !messageCloseBtn) {
+        console.error("Elemen modal pesan tidak ditemukan!");
+        alert(message); // Fallback to native alert
+        return;
+    }
+    messageContent.textContent = message;
+    const newMessageCloseBtn = messageCloseBtn.cloneNode(true);
+    messageCloseBtn.parentNode.replaceChild(newMessageCloseBtn, messageCloseBtn);
+    messageCloseBtn = newMessageCloseBtn;
+
+    messageCloseBtn.addEventListener('click', () => {
+        closeModal(messageModal);
+    });
+    openModal(messageModal);
+};
+
+
 function copyToClipboard(text, element) {
     const textarea = document.createElement('textarea');
     textarea.value = text;
@@ -174,7 +244,7 @@ function copyToClipboard(text, element) {
         setTimeout(() => { element.innerHTML = originalIcon; }, 1500);
     } catch (err) { 
         console.error('Gagal menyalin teks: ', err); 
-        alert('Gagal menyalin teks.'); 
+        showAlert('Gagal menyalin teks.'); 
     }
     document.body.removeChild(textarea);
 }
@@ -196,7 +266,7 @@ const renderCategories = () => {
 };
 const renderPrompts = (promptsToRender, title) => {
     currentCategory = title.includes("Kategori:") ? title.replace("Kategori: ", "") : null;
-    promptListTitle.textContent = title;
+    promptListTitleHeader.textContent = title; // Update header title
     promptList.innerHTML = '';
     if (promptsToRender.length === 0) promptList.innerHTML = `<div class="text-center p-10 text-gray-500">Tidak ada prompt yang cocok.</div>`;
     promptsToRender.forEach((prompt) => {
@@ -276,14 +346,12 @@ const setupListeners = () => {
     if (!userId) return;
     const promptsPath = `artifacts/${appId}/users/${userId}/prompts`;
     if (unsubscribePrompts) unsubscribePrompts();
-    // ### PERBAIKAN ###: Query tidak diubah, pengurutan dilakukan setelah data diterima
     unsubscribePrompts = onSnapshot(query(collection(db, promptsPath)), (snapshot) => {
         allPrompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         
-        // ### PERBAIKAN ###: Mengurutkan semua prompt berdasarkan waktu pembuatan (createdAt)
-        // Ini memastikan urutan data dari CSV tetap terjaga.
+        // Mengurutkan semua prompt berdasarkan waktu pembuatan (createdAt)
         // Data lama yang tidak punya `createdAt` akan ditaruh di awal.
-        allPrompts.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        allPrompts.sort((a, b) => (a.createdAt || 0) - (b.createdAt || 0)); // Use raw timestamp for sorting
 
         if (appContainer.classList.contains('hidden')) return;
         
@@ -316,11 +384,14 @@ const handleSavePrompt = async (e) => {
             // Saat mengedit, kita tidak mengubah `createdAt`
             await setDoc(doc(db, collectionPath, id), promptData, { merge: true });
         } else {
-            // ### PERBAIKAN ###: Menambahkan `createdAt` saat membuat prompt baru
-            await addDoc(collection(db, collectionPath), { ...promptData, createdAt: serverTimestamp() });
+            // Menambahkan `createdAt` saat membuat prompt baru
+            await addDoc(collection(db, collectionPath), { ...promptData, createdAt: Date.now() }); // Use Date.now() for consistent ordering
         }
         closeModal(modal);
-    } catch (error) { console.error("Error saving prompt:", error); }
+    } catch (error) { 
+        console.error("Error saving prompt:", error); 
+        showAlert("Gagal menyimpan prompt. Silakan coba lagi.");
+    }
 };
 async function deleteCollection(collectionPath) {
     const collectionRef = collection(db, collectionPath);
@@ -340,16 +411,23 @@ const handleDeletePrompt = async (id, category) => {
             await deleteCollection(variationsPath);
             await deleteDoc(doc(db, `artifacts/${appId}/users/${userId}/prompts`, id));
             showPage('page-categories');
+            showAlert("Prompt berhasil dihapus.");
         } catch (error) { 
             console.error("Error deleting prompt and its variations:", error); 
-            alert("Gagal menghapus prompt. Silakan coba lagi.");
+            showAlert("Gagal menghapus prompt. Silakan coba lagi.");
         }
     });
 };
 const handleDeleteVariation = async (variationId) => {
     if (!userId || !currentPromptId) return;
     const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations/${variationId}`;
-    try { await deleteDoc(doc(db, path)); } catch (error) { console.error("Error deleting variation:", error); }
+    try { 
+        await deleteDoc(doc(db, path)); 
+        showAlert("Variasi berhasil dihapus.");
+    } catch (error) { 
+        console.error("Error deleting variation:", error); 
+        showAlert("Gagal menghapus variasi. Silakan coba lagi.");
+    }
 };
 const handleDeleteHistory = (importId) => {
     if (!userId || !importId) return;
@@ -378,12 +456,12 @@ const handleDeleteHistory = (importId) => {
 
             await batch.commit();
             
-            alert("Sesi impor dan semua prompt terkait berhasil dihapus.");
+            showAlert("Sesi impor dan semua prompt terkait berhasil dihapus.");
             console.log("Proses hapus selesai.");
 
         } catch (error) {
             console.error("Error deleting import session:", error);
-            alert("Gagal menghapus sesi impor. Silakan coba lagi.");
+            showAlert("Gagal menghapus sesi impor. Silakan coba lagi.");
         }
     });
 };
@@ -417,43 +495,45 @@ const handleCsvImport = (event) => {
     reader.onload = async (e) => {
         const text = e.target.result;
         const data = parseRobustCSV(text);
-        if (data.length < 2) { alert("File CSV tidak valid."); return; }
+        if (data.length < 2) { showAlert("File CSV tidak valid."); return; }
         const headers = data[0].map(h => h.toLowerCase().trim());
         const rows = data.slice(1);
         const headerMap = { prompt: ['prompt', 'prompttext', 'prompt utama', 'prompt imajinasi lokal'], judul: ['judul', 'title'], kategori: ['kategori', 'category', 'tags'] };
         const getIndex = keys => keys.reduce((acc, key) => acc !== -1 ? acc : headers.indexOf(key), -1);
         const promptIdx = getIndex(headerMap.prompt);
-        if (promptIdx === -1) { alert("Kolom 'prompt' tidak ditemukan."); return; }
+        if (promptIdx === -1) { showAlert("Kolom 'prompt' tidak ditemukan."); return; }
         const judulIdx = getIndex(headerMap.judul);
         const kategoriIdx = getIndex(headerMap.kategori);
         const importId = crypto.randomUUID();
         const promptsBatch = writeBatch(db);
         const promptsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/prompts`);
-        rows.forEach(values => {
+        
+        let initialTimestamp = Date.now(); // Get a base timestamp for the batch
+        rows.forEach((values, index) => { // Add index to ensure order
             if (values.length <= promptIdx || !values[promptIdx]) return;
             const promptText = values[promptIdx] || '';
             const judul = judulIdx !== -1 ? values[judulIdx] : promptText.split(',')[0].substring(0, 50);
             const newDocRef = doc(promptsCollectionRef);
-            // ### PERBAIKAN ###: Menambahkan `createdAt` saat impor dari CSV
+            // Menambahkan `createdAt` saat impor dari CSV, menggunakan timestamp unik untuk setiap baris
             promptsBatch.set(newDocRef, { 
                 promptText: promptText, 
                 judul: judul || 'Tanpa Judul', 
                 kategori: kategoriIdx !== -1 && values[kategoriIdx] ? values[kategoriIdx] : 'Impor', 
                 importId: importId,
-                createdAt: serverTimestamp() 
+                createdAt: initialTimestamp + index // Use initial timestamp + index for ordering
             });
         });
         const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
         const historyBatch = writeBatch(db);
         historyBatch.set(historyDocRef, { timestamp: serverTimestamp(), promptCount: rows.length, fileName: file.name });
-        try { await promptsBatch.commit(); await historyBatch.commit(); alert(`${rows.length} prompt berhasil diimpor.`); } 
-        catch (error) { console.error("Error importing:", error); }
+        try { await promptsBatch.commit(); await historyBatch.commit(); showAlert(`${rows.length} prompt berhasil diimpor.`); } 
+        catch (error) { console.error("Error importing:", error); showAlert("Gagal mengimpor. Silakan coba lagi."); }
     };
     reader.readAsText(file);
     csvFileInput.value = '';
 };
 const handleExport = () => {
-    if (allPrompts.length === 0) { alert("Tidak ada data untuk diekspor."); return; }
+    if (allPrompts.length === 0) { showAlert("Tidak ada data untuk diekspor."); return; }
     const headers = ['judul', 'kategori', 'promptText'];
     const csvRows = [headers.join(',')];
     const escapeCsvField = (field) => `"${(field || '').toString().replace(/"/g, '""')}"`;
@@ -471,6 +551,7 @@ const handleExport = () => {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    showAlert("Data berhasil diekspor ke prompts_export.csv");
 };
 
 // --- Event Handlers ---
@@ -530,12 +611,36 @@ variationHistoryList.addEventListener('click', e => {
             const textToCopy = historyItem.querySelector('p').textContent;
             copyToClipboard(textToCopy, copyBtn);
         }
-    } else if (deleteBtn) {
-        showConfirmation("Anda yakin ingin menghapus variasi ini?", () => {
-            handleDeleteVariation(deleteBtn.dataset.id);
-        });
+        return; 
+    }
+
+    const saveBtn = e.target.closest('.save-new-variation-btn');
+    if (saveBtn) {
+        const button = saveBtn;
+        button.textContent = 'Menyimpan...';
+        button.disabled = true;
+
+        const suggestionContainer = saveBtn.closest('.variation-suggestion');
+        if (suggestionContainer) {
+            const textToSave = suggestionContainer.querySelector('p').textContent;
+            try {
+                const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
+                await addDoc(collection(db, path), { promptText: textToSave, createdAt: Date.now() }); // Use Date.now()
+                suggestionContainer.remove();
+                showAlert("Variasi berhasil disimpan.");
+            } catch (error) {
+                console.error("Gagal menyimpan variasi ke Firestore:", error);
+                showAlert("Gagal menyimpan variasi. Periksa koneksi internet Anda dan coba lagi.");
+                button.textContent = 'Simpan ke Riwayat';
+                button.disabled = false;
+            }
+        } else {
+            button.textContent = 'Simpan ke Riwayat';
+            button.disabled = false;
+        }
     }
 });
+
 generateVariationBtn.addEventListener('click', async () => {
     const prompt = allPrompts.find(p => p.id === currentPromptId);
     if (!prompt) return;
@@ -551,7 +656,7 @@ generateVariationBtn.addEventListener('click', async () => {
         if (cameraAngleVariationSelect.value) variations.push(cameraAngleVariationSelect.value);
         instruction = variations.join(', ');
     }
-    if (!instruction) { alert("Silakan pilih setidaknya satu variasi terarah atau tulis perubahan manual."); return; }
+    if (!instruction) { showAlert("Silakan pilih setidaknya satu variasi terarah atau tulis perubahan manual."); return; }
     
     variationSpinner.classList.remove('hidden');
     generateVariationBtn.disabled = true;
@@ -620,11 +725,11 @@ variationResultsContainer.addEventListener('click', async e => {
             const textToSave = suggestionContainer.querySelector('p').textContent;
             try {
                 const path = `artifacts/${appId}/users/${userId}/prompts/${currentPromptId}/variations`;
-                await addDoc(collection(db, path), { promptText: textToSave, createdAt: serverTimestamp() });
+                await addDoc(collection(db, path), { promptText: textToSave, createdAt: Date.now() }); // Use Date.now()
                 suggestionContainer.remove();
             } catch (error) {
                 console.error("Gagal menyimpan variasi ke Firestore:", error);
-                alert("Gagal menyimpan variasi. Periksa koneksi internet Anda dan coba lagi.");
+                showAlert("Gagal menyimpan variasi. Periksa koneksi internet Anda dan coba lagi.");
                 button.textContent = 'Simpan ke Riwayat';
                 button.disabled = false;
             }
@@ -637,7 +742,7 @@ variationResultsContainer.addEventListener('click', async e => {
 
 suggestMetadataBtn.addEventListener('click', async () => {
     const promptText = document.getElementById('promptText').value;
-    if (!promptText) { alert("Mohon isi Prompt Teks terlebih dahulu."); return; }
+    if (!promptText) { showAlert("Mohon isi Prompt Teks terlebih dahulu."); return; }
     metadataSpinner.classList.remove('hidden');
     suggestMetadataBtn.disabled = true;
     const prompt = `Berdasarkan prompt gambar AI berikut, sarankan satu judul singkat (maksimal 5 kata) dan satu nama kategori yang paling relevan. Prompt: "${promptText}"`;
@@ -647,17 +752,22 @@ suggestMetadataBtn.addEventListener('click', async () => {
         document.getElementById('judul').value = result.title || '';
         document.getElementById('kategori').value = result.category || '';
     } else {
-        alert("Gagal mendapatkan saran. Silakan coba lagi.");
+        showAlert("Gagal mendapatkan saran. Silakan coba lagi.");
     }
     metadataSpinner.classList.add('hidden');
     suggestMetadataBtn.disabled = false;
 });
 globalSearchInput.addEventListener('input', (e) => {
     const searchTerm = e.target.value.toLowerCase();
-    if (searchTerm.length < 3) {
-        if (!document.getElementById('page-categories').classList.contains('active')) showPage('page-categories');
+    if (searchTerm.length < 3 && searchTerm.length > 0) { // Only search if 3 or more chars, or if cleared to 0
+        // If user is typing and less than 3 chars, do nothing (don't jump back to categories yet)
         return;
     }
+    if (searchTerm.length === 0) { // If search term is cleared, go back to categories
+        showPage('page-categories');
+        return;
+    }
+
     const results = allPrompts.filter(p => p.judul.toLowerCase().includes(searchTerm) || p.promptText.toLowerCase().includes(searchTerm));
     renderPrompts(results, `Hasil Pencarian untuk: "${searchTerm}"`);
 });
@@ -667,9 +777,13 @@ historyList.addEventListener('click', (e) => {
         handleDeleteHistory(deleteBtn.dataset.importId);
     }
 });
-backToCategoriesBtn.addEventListener('click', () => showPage('page-categories'));
-backToPromptsBtn.addEventListener('click', () => renderPrompts(allPrompts.filter(p => p.kategori === currentCategory), `Kategori: ${currentCategory}`));
-backToCategoriesBtnFromHistory.addEventListener('click', () => showPage('page-categories'));
+
+// Updated header back buttons
+backToCategoriesBtnHeader.addEventListener('click', () => showPage('page-categories'));
+backToPromptsBtnHeader.addEventListener('click', () => renderPrompts(allPrompts.filter(p => p.kategori === currentCategory), `Kategori: ${currentCategory}`));
+backToCategoriesBtnFromHistoryHeader.addEventListener('click', () => showPage('page-categories'));
+
+
 historyBtn.addEventListener('click', () => renderHistory());
 addPromptBtn.addEventListener('click', () => { promptForm.reset(); document.getElementById('promptId').value = ''; modalTitle.innerText = "Tambah Prompt Baru"; openModal(modal); });
 importCsvBtn.addEventListener('click', () => csvFileInput.click());
@@ -687,16 +801,28 @@ settingsBtn.addEventListener('click', () => {
     openModal(settingsModal);
 });
 closeSettingsModalBtn.addEventListener('click', () => closeModal(settingsModal));
+
 saveApiKeyBtn.addEventListener('click', () => {
     const key = apiKeyInput.value.trim();
     if (key) {
         localStorage.setItem('geminiApiKey', key);
-        alert("Kunci API berhasil disimpan.");
+        showAlert("Kunci API berhasil disimpan.");
         closeModal(settingsModal);
     } else {
-        alert("Mohon masukkan kunci API.");
+        showAlert("Mohon masukkan kunci API.");
     }
 });
+
+clearApiKeyBtn.addEventListener('click', () => {
+    showConfirmation("Anda yakin ingin menghapus Kunci API Gemini Anda? Ini akan menghapus kunci dari browser Anda.", () => {
+        localStorage.removeItem('geminiApiKey');
+        apiKeyInput.value = '';
+        showAlert("Kunci API berhasil dihapus.");
+        closeModal(settingsModal);
+    });
+});
+
+messageCloseBtn.addEventListener('click', () => closeModal(messageModal)); // Event listener for the new message modal
 
 // --- Logika Autentikasi ---
 const handleGoogleLogin = async () => {
@@ -705,7 +831,7 @@ const handleGoogleLogin = async () => {
         await signInWithPopup(auth, provider);
     } catch (error) {
         console.error("Google sign-in error:", error);
-        alert("Gagal masuk dengan Google. Silakan coba lagi.");
+        showAlert("Gagal masuk dengan Google. Silakan coba lagi.");
     }
 };
 const handleLogout = async () => {
@@ -713,6 +839,7 @@ const handleLogout = async () => {
         await signOut(auth);
     } catch (error) {
         console.error("Sign-out error:", error);
+        showAlert("Gagal keluar. Silakan coba lagi.");
     }
 };
 loginBtn.addEventListener('click', handleGoogleLogin);
