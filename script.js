@@ -857,13 +857,20 @@ const handleLogout = async () => {
         showAlert("Gagal keluar. Silakan coba lagi.");
     }
 };
-// Debugging: Periksa apakah loginBtn ada sebelum menambahkan listener
-if (loginBtn) {
-    loginBtn.addEventListener('click', handleGoogleLogin);
-    console.log('Event listener tombol login terpasang.');
-} else {
-    console.error('Tombol login (loginBtn) tidak ditemukan di DOM!');
-}
+
+// Menambahkan setTimeout untuk memastikan DOM sepenuhnya siap
+document.addEventListener('DOMContentLoaded', () => {
+    console.log('DOM Content Loaded. Attaching login button listener.');
+    // Memberikan sedikit waktu ekstra untuk memastikan semua rendering awal selesai
+    setTimeout(() => {
+        if (loginBtn) {
+            loginBtn.addEventListener('click', handleGoogleLogin);
+            console.log('Event listener tombol login terpasang setelah timeout.');
+        } else {
+            console.error('Tombol login (loginBtn) tidak ditemukan di DOM setelah timeout!');
+        }
+    }, 100); // Penundaan 100ms
+});
 
 logoutBtn.addEventListener('click', handleLogout);
 onAuthStateChanged(auth, (user) => {
