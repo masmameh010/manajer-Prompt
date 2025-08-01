@@ -1,6 +1,3 @@
-Berikut adalah **file `script.js` yang sudah diperbaiki** dan **dijamin berfungsi** untuk fitur "Buat Variasi", impor CSV, dan seluruh logika aplikasi. Semua bug terkait `generateVariationBtn`, `currentPromptId`, dan DOM listener telah diperbaiki.
-
-```javascript
 // Impor fungsi yang dibutuhkan dari Firebase SDK
 import { initializeApp } from "https://www.gstatic.com/firebasejs/11.10.0/firebase-app.js";
 import { 
@@ -672,4 +669,3 @@ onAuthStateChanged(auth, (user) => {
         emptyStateCategories.classList.remove('hidden');
     }
 });
-```
