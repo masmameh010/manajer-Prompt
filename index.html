@@ -10,8 +10,7 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body class="text-gray-800">
-
-    <!-- Halaman Login (Akan tampil pertama kali) -->
+    <!-- Halaman Login -->
     <div id="page-login" class="page active">
         <div class="min-h-screen flex flex-col items-center justify-center bg-gray-50 p-4">
             <div class="max-w-md w-full text-center">
@@ -28,9 +27,8 @@
         </div>
     </div>
 
-    <!-- Konten Aplikasi Utama (Disembunyikan sebelum login) -->
+    <!-- Aplikasi Utama -->
     <div id="app-container" class="hidden">
-        <!-- Header -->
         <header class="bg-white shadow-sm sticky top-0 z-20">
             <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4">
@@ -53,13 +51,10 @@
                         </button>
                     </div>
                 </div>
-                <!-- Info Pengguna & Tombol Lainnya -->
                 <div class="flex flex-col sm:flex-row justify-between items-center gap-4 mt-4 pt-3 border-t">
-                     <div id="userInfo" class="flex items-center gap-3">
-                        <!-- Info pengguna akan diisi oleh JavaScript -->
-                    </div>
+                    <div id="userInfo" class="flex items-center gap-3"></div>
                     <div class="flex items-center gap-3">
-                         <button id="exportBtn" class="text-sm text-gray-600 hover:text-indigo-600 font-medium flex items-center gap-2">
+                        <button id="exportBtn" class="text-sm text-gray-600 hover:text-indigo-600 font-medium flex items-center gap-2">
                             <i class="fas fa-file-export"></i>
                             <span>Ekspor</span>
                         </button>
@@ -79,9 +74,7 @@
             </div>
         </header>
 
-        <!-- Main Content -->
         <main class="container mx-auto p-4 sm:p-6 lg:p-8">
-            <!-- Halaman Kategori -->
             <div id="page-categories" class="page">
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Daftar Kategori</h2>
                 <div id="category-grid" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6"></div>
@@ -92,115 +85,209 @@
                 </div>
             </div>
 
-            <!-- Halaman Daftar Prompt -->
             <div id="page-prompts" class="page">
-                <div class="flex items-center mb-6"><button id="backToCategoriesBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
+                <div class="flex items-center mb-6">
+                    <button id="backToCategoriesBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Kembali ke Kategori</span>
+                    </button>
+                </div>
                 <h2 id="prompt-list-title" class="text-2xl font-bold text-gray-800 mb-6"></h2>
                 <div id="prompt-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
             </div>
-            
-            <!-- Halaman Detail Prompt -->
+
             <div id="page-prompt-detail" class="page">
-                 <div class="flex items-center mb-6"><button id="backToPromptsBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Daftar Prompt</span></button></div>
-                 <div id="prompt-detail-content"></div>
-                 <div class="mt-8">
+                <div class="flex items-center mb-6">
+                    <button id="backToPromptsBtn" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Kembali ke Daftar Prompt</span>
+                    </button>
+                </div>
+                <div id="prompt-detail-content"></div>
+                <div class="mt-8">
                     <h3 class="text-xl font-bold text-gray-800 mb-4">Riwayat Variasi</h3>
                     <div id="variation-history-list" class="space-y-3"></div>
-                 </div>
+                </div>
             </div>
 
-            <!-- Halaman Riwayat Impor -->
             <div id="page-history" class="page">
-                 <div class="flex items-center mb-6"><button id="backToCategoriesBtnFromHistory" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2"><i class="fas fa-arrow-left"></i><span>Kembali ke Kategori</span></button></div>
+                <div class="flex items-center mb-6">
+                    <button id="backToCategoriesBtnFromHistory" class="text-indigo-600 hover:text-indigo-800 font-semibold flex items-center gap-2">
+                        <i class="fas fa-arrow-left"></i>
+                        <span>Kembali ke Kategori</span>
+                    </button>
+                </div>
                 <h2 class="text-2xl font-bold text-gray-800 mb-6">Riwayat Impor</h2>
                 <div id="history-list" class="bg-white rounded-lg shadow divide-y divide-gray-200"></div>
             </div>
         </main>
     </div>
-    
-    <!-- Semua Modal Tetap Sama -->
+
     <input type="file" id="csvFileInput" class="hidden" accept=".csv">
+
     <!-- Modal Tambah/Edit -->
     <div id="promptModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
         <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-2xl my-8">
             <form id="promptForm" class="p-6">
-                <div class="flex justify-between items-center mb-6 pb-4 border-b"><h2 id="modalTitle" class="text-2xl font-bold"></h2><button type="button" id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div>
-                <input type="hidden" id="promptId"><div class="space-y-4"><div><label for="promptText" class="block text-sm font-medium text-gray-700 mb-1">Prompt Teks</label><textarea id="promptText" rows="6" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea></div><div class="grid grid-cols-1 sm:grid-cols-2 gap-4"><div><label for="judul" class="block text-sm font-medium text-gray-700 mb-1">Judul</label><input type="text" id="judul" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></div><div><label for="kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label><input type="text" id="kategori" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></div></div><button type="button" id="suggestMetadataBtn" class="w-full bg-yellow-100 text-yellow-800 font-semibold px-4 py-2 rounded-lg hover:bg-yellow-200 flex items-center justify-center gap-2"><i class="fas fa-lightbulb"></i><span>✨ Sarankan Judul & Kategori dengan AI</span><div id="metadata-spinner" class="spinner hidden"></div></button></div>
-                <div class="mt-8 flex justify-end gap-4"><button type="button" id="cancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300">Batal</button><button type="submit" id="saveBtn" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div>
+                <div class="flex justify-between items-center mb-6 pb-4 border-b">
+                    <h2 id="modalTitle" class="text-2xl font-bold"></h2>
+                    <button type="button" id="closeModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
+                </div>
+                <input type="hidden" id="promptId">
+                <div class="space-y-4">
+                    <div>
+                        <label for="promptText" class="block text-sm font-medium text-gray-700 mb-1">Prompt Teks</label>
+                        <textarea id="promptText" rows="6" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required></textarea>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                        <div>
+                            <label for="judul" class="block text-sm font-medium text-gray-700 mb-1">Judul</label>
+                            <input type="text" id="judul" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        </div>
+                        <div>
+                            <label for="kategori" class="block text-sm font-medium text-gray-700 mb-1">Kategori</label>
+                            <input type="text" id="kategori" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" required>
+                        </div>
+                    </div>
+                    <button type="button" id="suggestMetadataBtn" class="w-full bg-yellow-100 text-yellow-800 font-semibold px-4 py-2 rounded-lg hover:bg-yellow-200 flex items-center justify-center gap-2">
+                        <i class="fas fa-lightbulb"></i>
+                        <span>✨ Sarankan Judul & Kategori dengan AI</span>
+                        <div id="metadata-spinner" class="spinner hidden"></div>
+                    </button>
+                </div>
+                <div class="mt-8 flex justify-end gap-4">
+                    <button type="button" id="cancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-4 py-2 rounded-lg hover:bg-gray-300">Batal</button>
+                    <button type="submit" id="saveBtn" class="bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700">Simpan</button>
+                </div>
             </form>
         </div>
     </div>
-    <!-- Modal Variasi Gemini -->
+
+    <!-- Modal Variasi -->
     <div id="variationModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden overflow-y-auto">
-        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt</h2><button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label><p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p></div><div class="space-y-4 pt-2"><label class="block text-sm font-medium text-gray-900">Pilih Variasi Terarah</label>
-            
-            <!-- ### PERUBAHAN DIMULAI DI SINI ### -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div>
-                    <label for="style-variation" class="block text-xs font-medium text-gray-600">Gaya / Nuansa</label>
-                    <select id="style-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="change to a tastefully daring and alluring style (artistic, not explicit)">Gaya Berani (Artistik)</option>
-                        <option value="change to a sweet, cute, and innocent style">Gaya Manis & Imut</option>
-                        <option value="change to a classy, elegant, and sophisticated style">Gaya Elegan & Berkelas</option>
-                        <option value="change to a mysterious and moody style">Gaya Misterius</option>
-                    </select>
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-4xl my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b">
+                    <h2 class="text-2xl font-bold flex items-center gap-3">
+                        <i class="fas fa-wand-magic-sparkles text-purple-500"></i>Generator Variasi Prompt
+                    </h2>
+                    <button type="button" id="closeVariationModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                 </div>
-                <div>
-                    <label for="clothing-style-variation" class="block text-xs font-medium text-gray-600">Gaya Pakaian</label>
-                    <select id="clothing-style-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="change the clothing to a beautiful traditional dress">Pakaian Tradisional</option>
-                        <option value="change the clothing to a modern casual outfit (like jeans and t-shirt)">Pakaian Kasual Modern</option>
-                        <option value="change the clothing to an elegant evening gown">Gaun Malam Elegan</option>
-                        <option value="change the clothing to sportswear">Pakaian Olahraga</option>
-                    </select>
+                <div class="space-y-4">
+                    <div>
+                        <label class="block text-sm font-medium text-gray-700 mb-1">Prompt Asli</label>
+                        <p id="originalPromptText" class="text-sm text-gray-600 bg-gray-100 p-3 rounded-md"></p>
+                    </div>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                        <div>
+                            <label for="style-variation" class="block text-xs font-medium text-gray-600">Gaya / Nuansa</label>
+                            <select id="style-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="change to a tastefully daring and alluring style (artistic, not explicit)">Gaya Berani (Artistik)</option>
+                                <option value="change to a sweet, cute, and innocent style">Gaya Manis & Imut</option>
+                                <option value="change to a classy, elegant, and sophisticated style">Gaya Elegan & Berkelas</option>
+                                <option value="change to a mysterious and moody style">Gaya Misterius</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="clothing-style-variation" class="block text-xs font-medium text-gray-600">Gaya Pakaian</label>
+                            <select id="clothing-style-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="change the clothing to a beautiful traditional dress">Pakaian Tradisional</option>
+                                <option value="change the clothing to a modern casual outfit (like jeans and t-shirt)">Pakaian Kasual Modern</option>
+                                <option value="change the clothing to an elegant evening gown">Gaun Malam Elegan</option>
+                                <option value="change the clothing to sportswear">Pakaian Olahraga</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="clothing-coverage-variation" class="block text-xs font-medium text-gray-600">Tingkat Keterbukaan Pakaian</label>
+                            <select id="clothing-coverage-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="make the clothing more revealing in a tasteful and artistic way">Lebih Terbuka (Artistik)</option>
+                                <option value="make the clothing more covered and modest">Lebih Tertutup & Sopan</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="hijab-variation" class="block text-xs font-medium text-gray-600">Jenis Hijab (Jika Ada)</label>
+                            <select id="hijab-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="ensure the subject is wearing a proper hijab that fully covers the hair, styled elegantly">Pastikan Berhijab (Elegan)</option>
+                                <option value="change to a simple, everyday hijab style">Gaya Hijab Sederhana</option>
+                                <option value="change to a sporty hijab style">Gaya Hijab Sporty</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="background-variation" class="block text-xs font-medium text-gray-600">Latar / Background</label>
+                            <select id="background-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="change the background to a neon-lit city street at night">Kota Malam Hari</option>
+                                <option value="change the background to a lush tropical forest">Hutan Tropis</option>
+                                <option value="change the background to a beach at sunset">Pantai Senja</option>
+                                <option value="change the background to a cozy cafe interior">Interior Kafe</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="camera-angle-variation" class="block text-xs font-medium text-gray-600">Sudut Pandang Kamera</label>
+                            <select id="camera-angle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
+                                <option value="">-- Pilih --</option>
+                                <option value="change the camera angle to a close-up shot of the face">Close-up</option>
+                                <option value="change the camera angle to a full-body shot">Full Body</option>
+                                <option value="change the camera angle to a high-angle shot">Dari Atas</option>
+                                <option value="change the camera angle to a low-angle shot">Dari Bawah</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual (dalam Bahasa Inggris)</label>
+                        <textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: add a subtle smile, change the hair color to blue..."></textarea>
+                    </div>
+                    <button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">
+                        Buat Variasi
+                        <div id="variation-spinner" class="spinner hidden"></div>
+                    </button>
                 </div>
-                <div>
-                    <label for="clothing-coverage-variation" class="block text-xs font-medium text-gray-600">Tingkat Keterbukaan Pakaian</label>
-                    <select id="clothing-coverage-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="make the clothing more revealing in a tasteful and artistic way">Lebih Terbuka (Artistik)</option>
-                        <option value="make the clothing more covered and modest">Lebih Tertutup & Sopan</option>
-                    </select>
+                <div id="variation-results-container" class="space-y-3 pt-4"></div>
+            </div>
+            <div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg">
+                <button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Pengaturan -->
+    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8">
+            <div class="p-6">
+                <div class="flex justify-between items-center mb-4 pb-4 border-b">
+                    <h2 class="text-2xl font-bold flex items-center gap-3">
+                        <i class="fas fa-cog text-gray-600"></i>Pengaturan
+                    </h2>
+                    <button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button>
                 </div>
-                <div>
-                    <label for="hijab-variation" class="block text-xs font-medium text-gray-600">Jenis Hijab (Jika Ada)</label>
-                    <select id="hijab-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="ensure the subject is wearing a proper hijab that fully covers the hair, styled elegantly">Pastikan Berhijab (Elegan)</option>
-                        <option value="change to a simple, everyday hijab style">Gaya Hijab Sederhana</option>
-                        <option value="change to a sporty hijab style">Gaya Hijab Sporty</option>
-                    </select>
+                <div class="space-y-4">
+                    <div>
+                        <label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Kunci API Gemini</label>
+                        <p class="text-xs text-gray-500 mb-2">Kunci API Anda disimpan dengan aman di peramban (browser) Anda dan tidak akan dibagikan.</p>
+                        <input type="password" id="apiKeyInput" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Masukkan kunci API Anda di sini...">
+                    </div>
                 </div>
-                <div>
-                    <label for="background-variation" class="block text-xs font-medium text-gray-600">Latar / Background</label>
-                    <select id="background-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="change the background to a neon-lit city street at night">Kota Malam Hari</option>
-                        <option value="change the background to a lush tropical forest">Hutan Tropis</option>
-                        <option value="change the background to a beach at sunset">Pantai Senja</option>
-                        <option value="change the background to a cozy cafe interior">Interior Kafe</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="camera-angle-variation" class="block text-xs font-medium text-gray-600">Sudut Pandang Kamera</label>
-                    <select id="camera-angle-variation" class="mt-1 block w-full p-2 border-gray-300 rounded-md shadow-sm text-sm">
-                        <option value="">-- Pilih --</option>
-                        <option value="change the camera angle to a close-up shot of the face">Close-up</option>
-                        <option value="change the camera angle to a full-body shot">Full Body</option>
-                        <option value="change the camera angle to a high-angle shot">Dari Atas</option>
-                        <option value="change the camera angle to a low-angle shot">Dari Bawah</option>
-                    </select>
+                <div class="mt-8 flex justify-end gap-4">
+                    <button type="button" id="saveApiKeyBtn" class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700">Simpan</button>
                 </div>
             </div>
-            <!-- ### PERUBAHAN SELESAI DI SINI ### -->
+        </div>
+    </div>
 
-            <div><label for="manual-variation" class="block text-sm font-medium text-gray-900 mt-4">Atau, Tulis Perubahan Manual (dalam Bahasa Inggris)</label><textarea id="manual-variation" rows="3" class="mt-1 w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Contoh: add a subtle smile, change the hair color to blue..."></textarea></div><button id="generate-variation-btn" class="w-full bg-indigo-600 text-white font-semibold px-4 py-2 rounded-lg hover:bg-indigo-700 flex items-center justify-center gap-2">Buat Variasi<div id="variation-spinner" class="spinner hidden"></div></button></div><div id="variation-results-container" class="space-y-3 pt-4"></div></div><div class="mt-6 p-6 border-t bg-gray-50 flex justify-end rounded-b-lg"><button type="button" id="closeVariationModalBtnFooter" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Tutup</button></div></div></div>
-    <!-- Modal Pengaturan API -->
-    <div id="settingsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="modal-content bg-white rounded-lg shadow-xl w-full max-w-lg my-8"><div class="p-6"><div class="flex justify-between items-center mb-4 pb-4 border-b"><h2 class="text-2xl font-bold flex items-center gap-3"><i class="fas fa-cog text-gray-600"></i>Pengaturan</h2><button type="button" id="closeSettingsModalBtn" class="text-gray-500 hover:text-gray-800 text-2xl">&times;</button></div><div class="space-y-4"><div><label for="apiKeyInput" class="block text-sm font-medium text-gray-700 mb-1">Kunci API Gemini</label><p class="text-xs text-gray-500 mb-2">Kunci API Anda disimpan dengan aman di peramban (browser) Anda dan tidak akan dibagikan.</p><input type="password" id="apiKeyInput" class="w-full p-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500" placeholder="Masukkan kunci API Anda di sini..."></div></div><div class="mt-8 flex justify-end gap-4"><button type="button" id="saveApiKeyBtn" class="bg-indigo-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-indigo-700">Simpan</button></div></div></div></div>
     <!-- Modal Konfirmasi -->
-    <div id="alertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden"><div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center"><p id="alertMessage" class="text-gray-800 mb-6"></p><div id="alert-buttons" class="flex justify-center gap-4"><button id="alertConfirmBtn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Ya, Hapus</button><button id="alertCancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Batal</button></div></div></div>
+    <div id="alertModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop hidden">
+        <div class="bg-white rounded-lg shadow-xl w-full max-w-sm p-6 text-center">
+            <p id="alertMessage" class="text-gray-800 mb-6"></p>
+            <div id="alert-buttons" class="flex justify-center gap-4">
+                <button id="alertConfirmBtn" class="bg-red-600 text-white font-semibold px-6 py-2 rounded-lg hover:bg-red-700">Ya, Hapus</button>
+                <button id="alertCancelBtn" class="bg-gray-200 text-gray-800 font-semibold px-6 py-2 rounded-lg hover:bg-gray-300">Batal</button>
+            </div>
+        </div>
+    </div>
 
     <script type="module" src="script.js"></script>
 </body>
