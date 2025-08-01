@@ -501,6 +501,80 @@ settingsBtn.addEventListener('click', () => {
     apiKeyInput.value = localStorage.getItem('geminiApiKey') || '';
     openModal(settingsModal);
 });
+// --- Event Listener untuk Saran Judul & Kategori ---
+suggestMetadataBtn.addEventListener('click', async () => {
+    const promptText = document.getElementById('promptText').value.trim();
+    if (!promptText) {
+        alert("Mohon isi Prompt Teks terlebih dahulu.");
+        return;
+    }
+
+    const apiKey = localStorage.getItem('geminiApiKey');
+    if (!apiKey) {
+        alert("Kunci API Gemini belum diatur. Silakan masukkan di menu Pengaturan.");
+        return;
+    }
+
+    metadataSpinner.classList.remove('hidden');
+    suggestMetadataBtn.disabled = true;
+
+    const geminiPrompt = `
+Berdasarkan prompt gambar AI berikut, sarankan satu judul singkat (maksimal 5 kata) dan satu nama kategori yang paling relevan.
+
+Prompt: "${promptText}"
+
+Aturan:
+- Judul harus singkat, deskriptif, dan menarik.
+- Kategori harus umum dan bisa digunakan untuk pengelompokan (misal: Potret, Karakter, Ilustrasi, Alam, Arsitektur).
+- Hanya kembalikan dalam format JSON berikut:
+{"title": "Judul yang disarankan", "category": "Kategori yang disarankan"}
+`;
+
+    const schema = { 
+        type: "OBJECT", 
+        properties: { 
+            "title": { "type": "STRING" }, 
+            "category": { "type": "STRING" } 
+        },
+        required: ["title", "category"]
+    };
+
+    try {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                contents: [{ role: "user", parts: [{ text: geminiPrompt }] }],
+                generationConfig: { responseMimeType: "application/json", responseSchema: schema }
+            })
+        });
+
+        if (!response.ok) {
+            const error = await response.json();
+            console.error("Gemini API Error:", error);
+            alert("Gagal memanggil AI. Periksa kunci API Anda.");
+            return;
+        }
+
+        const result = await response.json();
+        const content = result.candidates?.[0]?.content?.parts?.[0]?.text;
+        if (!content) {
+            alert("AI tidak mengembalikan data.");
+            return;
+        }
+
+        const parsed = JSON.parse(content);
+        document.getElementById('judul').value = parsed.title || '';
+        document.getElementById('kategori').value = parsed.category || '';
+
+    } catch (error) {
+        console.error("Error saat memproses saran:", error);
+        alert("Gagal mendapatkan saran dari AI. Coba lagi.");
+    } finally {
+        metadataSpinner.classList.add('hidden');
+        suggestMetadataBtn.disabled = false;
+    }
+});
 
 globalSearchInput.addEventListener('input', (e) => {
     const searchTerm = e.target.value.toLowerCase();
