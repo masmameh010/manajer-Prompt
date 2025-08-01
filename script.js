@@ -260,7 +260,7 @@ const setupListeners = () => {
     if (unsubscribePrompts) unsubscribePrompts();
     unsubscribePrompts = onSnapshot(query(collection(db, promptsPath)), (snapshot) => {
         allPrompts = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        allPrompts.sort((a, b) => (a.createdAt?.seconds || 0) - (b.createdAt?.seconds || 0));
+        allPrompts.sort((a, b) => (a.orderIndex || 0) - (b.orderIndex || 0));
         if (appContainer.classList.contains('hidden')) return;
         if (document.getElementById('page-categories').classList.contains('active')) {
             renderCategories();
@@ -387,7 +387,8 @@ const handleCsvImport = (event) => {
         const importId = crypto.randomUUID();
         const promptsBatch = writeBatch(db);
         const promptsCollectionRef = collection(db, `artifacts/${appId}/users/${userId}/prompts`);
-        rows.forEach(values => {
+        
+        rows.forEach((values, index) => {
             if (values.length <= promptIdx || !values[promptIdx]) return;
             const promptText = values[promptIdx] || '';
             const judul = judulIdx !== -1 ? values[judulIdx] : promptText.split(',')[0].substring(0, 50);
@@ -397,18 +398,23 @@ const handleCsvImport = (event) => {
                 judul: judul || 'Tanpa Judul', 
                 kategori: kategoriIdx !== -1 && values[kategoriIdx] ? values[kategoriIdx] : 'Impor', 
                 importId,
-                createdAt: serverTimestamp() 
+                createdAt: serverTimestamp(),
+                orderIndex: index // 👈 INI YANG MEMASTIKAN URUTAN
             });
         });
+
         const historyDocRef = doc(db, `artifacts/${appId}/users/${userId}/importHistory`, importId);
         const historyBatch = writeBatch(db);
         historyBatch.set(historyDocRef, { timestamp: serverTimestamp(), promptCount: rows.length, fileName: file.name });
+        
         try { 
             await promptsBatch.commit(); 
             await historyBatch.commit(); 
             alert(`${rows.length} prompt berhasil diimpor.`);
             showPage('page-categories');
-        } catch (error) { console.error("Error importing:", error); }
+        } catch (error) { 
+            console.error("Error importing:", error); 
+        }
     };
     reader.readAsText(file);
     csvFileInput.value = '';
