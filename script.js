@@ -518,17 +518,7 @@ suggestMetadataBtn.addEventListener('click', async () => {
     metadataSpinner.classList.remove('hidden');
     suggestMetadataBtn.disabled = true;
 
-    const geminiPrompt = `
-Berdasarkan prompt gambar AI berikut: "${promptText}", hasilkan satu judul, satu kategori umum, dan satu sub-kategori yang lebih spesifik.
-
-Aturan:
-- **Judul:** Buat judul yang deskriptif, menarik, dan maksimal 5 kata.
-- **Kategori:** Pilih satu kategori yang paling relevan dari daftar pengelompokan umum (contoh: Potret, Karakter, Ilustrasi, Alam, Arsitektur).
-- **Sub-kategori:** Buat satu sub-kategori yang lebih spesifik dan relevan dengan isi prompt (maksimal 2 kata).
-- **Format:** Berikan hasil Anda hanya dalam format JSON seperti berikut:
-{"title": "Judul yang disarankan", "category": "Kategori Umum", "sub_category": "Kategori Spesifik"}
-`;
-
+    const prompt = `Berdasarkan prompt gambar AI berikut, sarankan satu judul singkat (maksimal 5 kata) dan satu nama kategori yang paling relevan. Prompt: "${promptText}"`;
     const schema = { 
         type: "OBJECT", 
         properties: { 
